@@ -265,3 +265,4 @@ __pycache__/
 *.min.js
 *.min.css
 *.sqlite
+db/data/
