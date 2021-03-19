@@ -142,7 +142,9 @@ We should be ready to go now. In the `db` folder run:
 docker-compose up
 ```
 
-> Note: It appears docker might cache the postgres details if you've previously run postgres in a container, see this https://stackoverflow.com/a/56682187 if you have trouble
+> Note: It appears docker might cache the postgres details if you've previously run postgres in a container, see this https://stackoverflow.com/a/56682187 if you have trouble.
+
+> Another Note: YAML, the format for docker-compose is the worst ever config syntax and is super-finicky about whitespace, check you've got the whitespace exactly right if `docker-compose up` complains.
 
 Once you have run this command you should get the output logging of the container starting up:
 
@@ -228,7 +230,7 @@ mkdir data
 docker-compose up
 ```
 
-This will entirely nuke the database container if you need a clean start.
+This will entirely wipe and rebuild the database container if you need a clean start.
 
 In addition it's useful to have a tool to connect to the database, for this purpose I recommend DBeaver: https://dbeaver.com/
 
@@ -237,3 +239,51 @@ You can connect to our newly created database with the following settings:
 [img004]
 
 Now we've got the first part of our infrastructure and project set-up, let's commit and take a break.
+
+## Step 3 ##
+
+Now we're going to start building out some features of our application to make it a little interesting.
+
+First we need an email validation step since we don't want people spamming us with crawl requests for nonsense.
+
+Then we want to accept the URL for crawl and have a test page to ensure the crawl is configured correctly. Finally we need the ability for the user to delete those crawls
+and a background task to run the actual crawling on an interval.
+
+### Architecture ###
+
+Generally for any application you want to keep the logic in the hosting application as small as possible so that you can easily switch the hosting application between, for example, an API, a desktop app, a mobile app, an API, etc. For this purpose and others CQRS using Mediatr is generally an unbeatable pattern, unless you have very specific requirements.
+
+Our MVC application will defer to our CQRS library for all operations. We also need code to do the web crawling for us. For saved monitoring jobs we'll want to run this out of process. When the user is creating a task we probably want to run in-process. For this reason the actually crawling code will be self contained and shared between the MVC host and the console host for the crawler agent.
+
+The 2 main options for data access are Entity Framework Core and Dapper. Since I love raw SQL and have a difficult time with EF we'll be using Dapper and running SQL against our database. This means we need to manage migrations ourselves, for this purpose we will use Evolve.
+
+We will use the following 4 projects:
+
++ PriceFalcon.Web - The MVC host application, should contain very little logic, it simply exposes our endpoints, displays the UI and forms the composition root for the web application.
++ PriceFalcon.App - The meat of the application logic. The requests and handlers live in here and are responsible for all our business logic (unrelated to the actual web crawling).
++ PriceFalcon.Domain - The core classes with no logic for things like users, tokens, jobs, etc.
++ PriceFalcon.Infrastructure - Interact with external services such as the database, email sending, metrics etc. Only interfaces are publically exposed to the other projects.
+
+The structure as a diagram:
+
+[IMG005]
+
+This might seem like over-engineering at this stage, and it probably is, but it ensures a good separation of concerns and makes sure people don't start mixing all sorts of different code in a single place. It doesn't add significant overhead and future engineers will thank you.
+
+### Getting started ###
+
+First up let's install Mediatr and create the library for commands/queries. For now handlers will live next to their commands, we could always extract these in future.
+
+I added a new .NET 5 class lib called PriceFalcon.App and installed the Mediatr 9 NuGet package to both Web and App projects. Then I installed Mediatr.Extensions.Microsoft.DependencyInjection in just the web project.
+
+Then I created SendEmailInvite class and SendEmailInviteHandler in the App project. Add a reference to App from Web. Add this code in Startup so that all requests and handlers are picked up.
+
+```
+services.AddMediatR(typeof(SendEmailInvite).Assembly);
+```
+
+We also need a place to stick code to send emails, interact with the database etc. To this end I added the PriceFalcon.Infrastructure project and referenced it from both Web and App.
+
+# Notes #
+
+https://mbuffett.com/posts/kubernetes-setup/

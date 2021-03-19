@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MediatR" Version="9.0.0" />
-    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PriceFalcon.App\PriceFalcon.App.csproj" />
+    <ProjectReference Include="..\PriceFalcon.Domain\PriceFalcon.Domain.csproj" />
     <ProjectReference Include="..\PriceFalcon.Infrastructure\PriceFalcon.Infrastructure.csproj" />
   </ItemGroup>
 
