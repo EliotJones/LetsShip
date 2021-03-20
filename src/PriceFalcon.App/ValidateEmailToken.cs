@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using PriceFalcon.Domain;
@@ -10,26 +9,28 @@ namespace PriceFalcon.App
 {
     public class EmailTokenValidateResult
     {
+        public static readonly EmailTokenValidateResult Error = new EmailTokenValidateResult();
+
         public bool IsSuccess { get; }
 
-        public string? JobCreateToken { get; }
+        public string? Email { get; set; }
 
-        public EmailTokenValidateResult(string jobCreateToken)
-        {
-            IsSuccess = true;
-            JobCreateToken = jobCreateToken;
-        }
-
-        public EmailTokenValidateResult()
+        private EmailTokenValidateResult()
         {
             IsSuccess = false;
         }
+
+        private EmailTokenValidateResult(string email)
+        {
+            IsSuccess = true;
+            Email = email;
+        }
+
+        public static EmailTokenValidateResult Success(string email) => new EmailTokenValidateResult(email);
     }
 
     public class ValidateEmailToken : IRequest<EmailTokenValidateResult>
     {
-        public string Email { get; set; } = string.Empty;
-
         public string Token { get; set; } = string.Empty;
     }
 
@@ -46,23 +47,18 @@ namespace PriceFalcon.App
 
         public async Task<EmailTokenValidateResult> Handle(ValidateEmailToken request, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetByEmail(request.Email);
-
-            if (user == null)
-            {
-                return new EmailTokenValidateResult();
-            }
-
             var tokenValid = await _tokenService.ValidateToken(request.Token, Token.TokenPurpose.ValidateEmail);
 
-            if (tokenValid != TokenValidationResult.Success)
+            if (tokenValid.Status != TokenValidationStatus.Success || !tokenValid.UserId.HasValue)
             {
-                return new EmailTokenValidateResult();
+                return EmailTokenValidateResult.Error;
             }
 
-            var jobToken = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(16));
+            await _userRepository.SetVerified(tokenValid.UserId.Value);
 
-            return new EmailTokenValidateResult(jobToken);
+            var userEmail = await _userRepository.GetEmailById(tokenValid.UserId.Value);
+
+            return EmailTokenValidateResult.Success(userEmail);
         }
     }
 }

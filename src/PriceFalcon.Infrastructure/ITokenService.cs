@@ -5,6 +5,19 @@ using PriceFalcon.Domain;
 
 namespace PriceFalcon.Infrastructure
 {
+    public class TokenValidationResult
+    {
+        public TokenValidationStatus Status { get; }
+
+        public int? UserId { get; }
+
+        public TokenValidationResult(TokenValidationStatus status, int? userId)
+        {
+            Status = status;
+            UserId = userId;
+        }
+    }
+
     public interface ITokenService
     {
         Task<string> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc);
@@ -37,7 +50,7 @@ namespace PriceFalcon.Infrastructure
         }
     }
 
-    public enum TokenValidationResult
+    public enum TokenValidationStatus
     {
         Success = 1,
         Expired = 2,

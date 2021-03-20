@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
+using Dapper;
+using Dapper.Contrib.Extensions;
 using PriceFalcon.Domain;
 
 namespace PriceFalcon.Infrastructure.DataAccess
@@ -10,23 +13,68 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task<User?> GetById(int id);
 
         Task<User> CreateUser(string email);
+
+        Task<string> GetEmailById(int userId);
+
+        Task SetVerified(int userId);
     }
 
     internal class UserRepository : IUserRepository
     {
-        public Task<User?> GetByEmail(string? email)
+        private readonly IConnectionProvider _connectionProvider;
+
+        public UserRepository(IConnectionProvider connectionProvider)
         {
-            throw new System.NotImplementedException();
+            _connectionProvider = connectionProvider;
         }
 
-        public Task<User?> GetById(int id)
+        public async Task<User?> GetByEmail(string? email)
         {
-            throw new System.NotImplementedException();
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return null;
+            }
+
+            await using var connection = await _connectionProvider.Get();
+
+            return await connection.QueryFirstOrDefaultAsync<User>("SELECT * FROM users WHERE email = @email;", new { email });
         }
 
-        public Task<User> CreateUser(string email)
+        public async Task<User?> GetById(int id)
         {
-            throw new System.NotImplementedException();
+            await using var connection = await _connectionProvider.Get();
+
+            return await connection.QueryFirstOrDefaultAsync<User>("SELECT * FROM users WHERE id = @id;", new { id });
+        }
+
+        public async Task<User> CreateUser(string email)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            var user = new User
+            {
+                Created = DateTime.UtcNow,
+                Email = email,
+                IsVerified = false
+            };
+
+            await connection.InsertEntity(user);
+
+            return user;
+        }
+
+        public async Task<string> GetEmailById(int userId)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            return await connection.QueryFirstOrDefaultAsync<string>("SELECT email FROM users WHERE id = @id;", new { id = userId });
+        }
+
+        public async Task SetVerified(int userId)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            await connection.ExecuteAsync("UPDATE users SET is_verified = TRUE WHERE id = @id;", new { id = userId });
         }
     }
 }

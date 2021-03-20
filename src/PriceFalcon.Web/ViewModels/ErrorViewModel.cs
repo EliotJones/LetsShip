@@ -1,6 +1,4 @@
-using System;
-
-namespace PriceFalcon.Web.Models
+namespace PriceFalcon.Web.ViewModels
 {
     public class ErrorViewModel
     {

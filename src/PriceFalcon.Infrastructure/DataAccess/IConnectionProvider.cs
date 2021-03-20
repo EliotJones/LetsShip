@@ -21,6 +21,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
             }
 
             _connectionString = connectionString;
+            Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
         }
 
         public async Task<DbConnection> Get()

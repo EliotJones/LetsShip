@@ -32,11 +32,14 @@ namespace PriceFalcon.Infrastructure
 
             var client = new SendGridClient(key);
             var from = new EmailAddress("noreply.pricefalcon@pricefalcon.com");
-            var to = new EmailAddress(recipient); ;
+            var to = new EmailAddress(recipient);
             var msg = MailHelper.CreateSingleEmail(from, to, subject, body, body);
-            msg.MailSettings.SandboxMode = new SandboxMode
+            msg.MailSettings = new MailSettings
             {
-                Enable = true
+                SandboxMode = new SandboxMode
+                {
+                    Enable = true
+                }
             };
 
             var response = await client.SendEmailAsync(msg);
