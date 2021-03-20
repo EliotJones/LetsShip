@@ -10,10 +10,15 @@ namespace PriceFalcon.Domain
 
         public string Value { get; set; }
 
+        public bool IsUsed { get; set; }
+
+        public TokenPurpose Purpose { get; set; }
+
         public DateTime Expiry { get; set; }
 
-        public bool IsUsed { get; set; }
-        public enum Purpose
+        public DateTime Created { get; set; }
+
+        public enum TokenPurpose
         {
             ValidateEmail = 1,
             ViewAccount = 2,

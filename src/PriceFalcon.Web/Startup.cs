@@ -58,6 +58,8 @@ namespace PriceFalcon.Web
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
+
+            Bootstrapper.MigrateDatabase(Configuration);
         }
     }
 }

@@ -7,16 +7,16 @@ namespace PriceFalcon.Infrastructure
 {
     public interface ITokenService
     {
-        Task<string> GenerateToken(int userId, Token.Purpose purpose, DateTime expiryUtc);
+        Task<string> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc);
 
-        Task<TokenValidationResult> ValidateToken(string token, Token.Purpose purpose);
+        Task<TokenValidationResult> ValidateToken(string token, Token.TokenPurpose purpose);
 
-        Task<Token?> GetLastToken(int userId, Token.Purpose purpose);
+        Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose);
     }
 
     internal class TokenService : ITokenService
     {
-        public Task<string> GenerateToken(int userId, Token.Purpose purpose, DateTime expiryUtc)
+        public Task<string> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc)
         {
             using var rng = new RNGCryptoServiceProvider();
 
@@ -26,12 +26,12 @@ namespace PriceFalcon.Infrastructure
             return Task.FromResult(Convert.ToBase64String(tokenBuffer));
         }
 
-        public Task<TokenValidationResult> ValidateToken(string token, Token.Purpose purpose)
+        public Task<TokenValidationResult> ValidateToken(string token, Token.TokenPurpose purpose)
         {
             throw new NotImplementedException();
         }
 
-        public Task<Token?> GetLastToken(int userId, Token.Purpose purpose)
+        public Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose)
         {
             throw new NotImplementedException();
         }

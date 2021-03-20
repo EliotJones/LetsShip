@@ -33,14 +33,14 @@ namespace PriceFalcon.App
                 return null;
             }
 
-            var lastToken = await _tokenService.GetLastToken(user.Id, Token.Purpose.CreateJob);
+            var lastToken = await _tokenService.GetLastToken(user.Id, Token.TokenPurpose.CreateJob);
 
             if (lastToken != null)
             {
                 // todo: expiry check
             }
 
-            return await _tokenService.GenerateToken(user.Id, Token.Purpose.CreateJob, DateTime.UtcNow.AddDays(10));
+            return await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(10));
         }
     }
 }

@@ -257,7 +257,7 @@ Our MVC application will defer to our CQRS library for all operations. We also n
 
 The 2 main options for data access are Entity Framework Core and Dapper. Since I love raw SQL and have a difficult time with EF we'll be using Dapper and running SQL against our database. This means we need to manage migrations ourselves, for this purpose we will use Evolve.
 
-We will use the following 4 projects:
+We will use the following 4 projects for the web application part of our project:
 
 + PriceFalcon.Web - The MVC host application, should contain very little logic, it simply exposes our endpoints, displays the UI and forms the composition root for the web application.
 + PriceFalcon.App - The meat of the application logic. The requests and handlers live in here and are responsible for all our business logic (unrelated to the actual web crawling).

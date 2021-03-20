@@ -53,14 +53,14 @@ namespace PriceFalcon.App
                 return new EmailTokenValidateResult();
             }
 
-            var tokenValid = await _tokenService.ValidateToken(request.Token, Token.Purpose.ValidateEmail);
+            var tokenValid = await _tokenService.ValidateToken(request.Token, Token.TokenPurpose.ValidateEmail);
 
             if (tokenValid != TokenValidationResult.Success)
             {
                 return new EmailTokenValidateResult();
             }
 
-            var jobToken = await _tokenService.GenerateToken(user.Id, Token.Purpose.CreateJob, DateTime.UtcNow.AddDays(16));
+            var jobToken = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(16));
 
             return new EmailTokenValidateResult(jobToken);
         }
