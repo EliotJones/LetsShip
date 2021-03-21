@@ -1,6 +1,6 @@
 ﻿@model CreateJobViewModel
 
-<form asp-action="CreateJobStart">
+<form asp-action="CreateJobStart" asp-route-token="@ViewData["token"]">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <div class="form-group">
         <label asp-for="Url" class="control-label">Website</label>

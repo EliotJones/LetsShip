@@ -13,7 +13,11 @@ namespace PriceFalcon.Infrastructure
         {
             serviceCollection.AddSingleton<IConnectionProvider>(
                 ctx => new DefaultConnectionProvider(configuration.GetConnectionString("Default")));
+
             serviceCollection.AddSingleton<IUserRepository, UserRepository>();
+            serviceCollection.AddSingleton<ITokenRepository, TokenRepository>();
+            serviceCollection.AddSingleton<IEmailRepository, EmailRepository>();
+
             serviceCollection.AddSingleton<ITokenService, TokenService>();
             serviceCollection.AddSingleton<IEmailService, SendGridEmailService>();
         }

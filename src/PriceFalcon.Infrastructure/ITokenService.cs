@@ -2,6 +2,7 @@
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using PriceFalcon.Domain;
+using PriceFalcon.Infrastructure.DataAccess;
 
 namespace PriceFalcon.Infrastructure
 {
@@ -29,24 +30,47 @@ namespace PriceFalcon.Infrastructure
 
     internal class TokenService : ITokenService
     {
-        public Task<string> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc)
+        private readonly ITokenRepository _tokenRepository;
+
+        public TokenService(ITokenRepository tokenRepository)
+        {
+            _tokenRepository = tokenRepository;
+        }
+
+        public async Task<string> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc)
         {
             using var rng = new RNGCryptoServiceProvider();
 
             var tokenBuffer = new byte[64];
             rng.GetBytes(tokenBuffer);
 
-            return Task.FromResult(Convert.ToBase64String(tokenBuffer));
+            var value = Convert.ToBase64String(tokenBuffer);
+
+            await _tokenRepository.Create(value, userId, purpose, expiryUtc);
+
+            return value;
         }
 
-        public Task<TokenValidationResult> ValidateToken(string token, Token.TokenPurpose purpose)
+        public async Task<TokenValidationResult> ValidateToken(string token, Token.TokenPurpose purpose)
         {
-            throw new NotImplementedException();
+            var tokenStored = await _tokenRepository.GetByValue(token);
+
+            if (tokenStored == null)
+            {
+                return new TokenValidationResult(TokenValidationStatus.Invalid, null);
+            }
+
+            if (DateTime.UtcNow > tokenStored.Expiry)
+            {
+                return new TokenValidationResult(TokenValidationStatus.Expired, tokenStored.UserId);
+            }
+
+            return new TokenValidationResult(TokenValidationStatus.Success, tokenStored.UserId);
         }
 
-        public Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose)
+        public async Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose)
         {
-            throw new NotImplementedException();
+            return await _tokenRepository.GetLastToken(userId, purpose);
         }
     }
 

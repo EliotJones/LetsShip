@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Net;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -22,15 +23,13 @@ namespace PriceFalcon.Web.Controllers
             _mediator = mediator;
         }
 
-        [HttpGet]
-        [Route("")]
+        [HttpGet("")]
         public IActionResult Index()
         {
             return View();
         }
 
-        [HttpPost]
-        [Route("")]
+        [HttpPost("")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Start(IndexViewModel model)
         {
@@ -39,22 +38,44 @@ namespace PriceFalcon.Web.Controllers
                 return BadRequest(ModelState);
             }
 
-            await _mediator.Send(new SendEmailInvite(model.Email));
+            var user = await _mediator.Send(
+                new GetUserByEmail
+                {
+                    Email = model.Email
+                });
+
+            if (user == null || !user.IsVerified)
+            {
+                await _mediator.Send(new SendEmailInvite(model.Email));
 
             return RedirectToAction("CheckEmail");
+            }
+
+            await _mediator.Send(
+                new RequestNewJobToken
+                {
+                    Email = model.Email
+                });
+
+            return RedirectToAction("CheckEmailNewJob");
         }
 
-        [HttpGet]
-        [Route("invited")]
+        [HttpGet("invited")]
         public IActionResult CheckEmail()
         {
             return View();
         }
 
-        [HttpGet]
-        [Route("register/{token}")]
+        [HttpGet("job-emailed")]
+        public IActionResult CheckEmailNewJob()
+        {
+            return View();
+        }
+
+        [HttpGet("register/{token}")]
         public async Task<IActionResult> Register(string token)
         {
+            token = WebUtility.UrlDecode(token);
             var validated = await _mediator.Send(
                 new ValidateEmailToken
                 {
@@ -71,20 +92,31 @@ namespace PriceFalcon.Web.Controllers
                 Email = validated.Email!
             });
 
-            return RedirectToAction("CreateJob", new {token = jobToken});
+            return RedirectToAction("CreateJob", new {token = WebUtility.UrlEncode(jobToken)});
         }
 
-        [HttpGet]
-        [Route("create/{token}")]
-        public IActionResult CreateJob(string token)
+        [HttpGet("create/{token}")]
+        public async Task<IActionResult> CreateJob(string token)
         {
+            ViewData["token"] = token;
+
+            token = WebUtility.UrlDecode(token);
+
+            var validationResult = await _mediator.Send(new ValidateNewJobToken(token));
+
+            if (!validationResult.IsValid)
+            {
+                return RedirectToAction("Index");
+            }
+
             return View();
         }
 
-        [HttpPost]
-        [Route("create/{token}")]
-        public async Task<IActionResult> CreateJobStart(string token, [FromBody] CreateJobViewModel model)
+        [HttpPost("create/{token}")]
+        public async Task<IActionResult> CreateJobStart(string token, CreateJobViewModel model)
         {
+            token = WebUtility.UrlDecode(token);
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);

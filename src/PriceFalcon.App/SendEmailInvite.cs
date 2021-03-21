@@ -48,7 +48,7 @@ namespace PriceFalcon.App
 
             if (user == null)
             {
-                user = await _userRepository.CreateUser(request.Email);
+                user = await _userRepository.Create(request.Email);
             }
 
             var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.ValidateEmail, DateTime.UtcNow.AddDays(10));

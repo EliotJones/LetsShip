@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using PriceFalcon.Domain;
+using PriceFalcon.Infrastructure.DataAccess;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 
@@ -7,6 +10,8 @@ namespace PriceFalcon.Infrastructure
     public interface IEmailService
     {
         Task<EmailSendResult> Send(string recipient, string subject, string body);
+
+        Task<IReadOnlyList<Email>> GetAllSent();
     }
 
     public enum EmailSendResult
@@ -20,10 +25,12 @@ namespace PriceFalcon.Infrastructure
     internal class SendGridEmailService : IEmailService
     {
         private readonly PriceFalconConfig _config;
+        private readonly IEmailRepository _emailRepository;
 
-        public SendGridEmailService(PriceFalconConfig config)
+        public SendGridEmailService(PriceFalconConfig config, IEmailRepository emailRepository)
         {
             _config = config;
+            _emailRepository = emailRepository;
         }
 
         public async Task<EmailSendResult> Send(string recipient, string subject, string body)
@@ -44,7 +51,17 @@ namespace PriceFalcon.Infrastructure
 
             var response = await client.SendEmailAsync(msg);
 
+            if (response.IsSuccessStatusCode)
+            {
+                await _emailRepository.Create(body, recipient, subject);
+            }
+
             return response.IsSuccessStatusCode ? EmailSendResult.Success : EmailSendResult.Error;
+        }
+
+        public async Task<IReadOnlyList<Email>> GetAllSent()
+        {
+            return await _emailRepository.GetAll();
         }
     }
 }

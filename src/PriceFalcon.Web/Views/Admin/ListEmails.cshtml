@@ -1,0 +1,25 @@
+﻿@model AdminEmailsListViewModel
+@{
+}
+
+<table>
+    <thead>
+    <tr>
+        <th>Recipient</th>
+        <th>Subject</th>
+        <th>Body</th>
+        <th>Date</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var email in Model.Emails)
+    {
+        <tr>
+            <td>@email.Recipient</td>
+            <td>@email.Subject</td>
+            <td>@email.Body</td>
+            <td>@email.Created</td>
+        </tr>
+    }
+    </tbody>
+</table>

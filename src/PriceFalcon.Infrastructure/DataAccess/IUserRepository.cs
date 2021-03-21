@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Dapper;
-using Dapper.Contrib.Extensions;
 using PriceFalcon.Domain;
 
 namespace PriceFalcon.Infrastructure.DataAccess
@@ -12,7 +11,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
         Task<User?> GetById(int id);
 
-        Task<User> CreateUser(string email);
+        Task<User> Create(string email);
 
         Task<string> GetEmailById(int userId);
 
@@ -47,7 +46,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
             return await connection.QueryFirstOrDefaultAsync<User>("SELECT * FROM users WHERE id = @id;", new { id });
         }
 
-        public async Task<User> CreateUser(string email)
+        public async Task<User> Create(string email)
         {
             await using var connection = await _connectionProvider.Get();
 
