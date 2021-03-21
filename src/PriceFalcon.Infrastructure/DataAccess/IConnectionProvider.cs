@@ -22,6 +22,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             _connectionString = connectionString;
             Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+            Dapper.SqlMapper.AddTypeHandler(new DapperUriMapper());
         }
 
         public async Task<DbConnection> Get()

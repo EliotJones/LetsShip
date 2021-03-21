@@ -23,7 +23,8 @@ namespace PriceFalcon.Domain
             ValidateEmail = 1,
             ViewAccount = 2,
             Unsubscribe = 3,
-            CreateJob = 4
+            CreateJob = 4,
+            MonitorJob = 5
         }
     }
 }

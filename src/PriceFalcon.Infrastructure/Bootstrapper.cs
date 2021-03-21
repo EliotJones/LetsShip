@@ -14,12 +14,13 @@ namespace PriceFalcon.Infrastructure
             serviceCollection.AddSingleton<IConnectionProvider>(
                 ctx => new DefaultConnectionProvider(configuration.GetConnectionString("Default")));
 
-            serviceCollection.AddSingleton<IUserRepository, UserRepository>();
-            serviceCollection.AddSingleton<ITokenRepository, TokenRepository>();
+            serviceCollection.AddSingleton<IDraftJobRepository, DraftJobRepository>();
             serviceCollection.AddSingleton<IEmailRepository, EmailRepository>();
+            serviceCollection.AddSingleton<ITokenRepository, TokenRepository>();
+            serviceCollection.AddSingleton<IUserRepository, UserRepository>();
 
-            serviceCollection.AddSingleton<ITokenService, TokenService>();
             serviceCollection.AddSingleton<IEmailService, SendGridEmailService>();
+            serviceCollection.AddSingleton<ITokenService, TokenService>();
         }
 
         public static void MigrateDatabase(IConfiguration configuration)

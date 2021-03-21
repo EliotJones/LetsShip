@@ -35,7 +35,7 @@ namespace PriceFalcon.App
 
             var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(10));
 
-            return token;
+            return token.token;
         }
     }
 }

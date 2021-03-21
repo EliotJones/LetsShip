@@ -21,11 +21,13 @@ namespace PriceFalcon.Infrastructure
 
     public interface ITokenService
     {
-        Task<string> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc);
+        Task<(int id, string token)> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc);
 
         Task<TokenValidationResult> ValidateToken(string token, Token.TokenPurpose purpose);
 
         Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose);
+
+        Task Revoke(string token);
     }
 
     internal class TokenService : ITokenService
@@ -37,18 +39,20 @@ namespace PriceFalcon.Infrastructure
             _tokenRepository = tokenRepository;
         }
 
-        public async Task<string> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc)
+        public async Task<(int id, string token)> GenerateToken(int userId, Token.TokenPurpose purpose, DateTime expiryUtc)
         {
             using var rng = new RNGCryptoServiceProvider();
 
             var tokenBuffer = new byte[64];
             rng.GetBytes(tokenBuffer);
 
-            var value = Convert.ToBase64String(tokenBuffer);
+            // Replace the URL unsafe characters for our own rubbish encoding scheme.
+            var value = Convert.ToBase64String(tokenBuffer).Replace('/', '-')
+                .Replace('+', '&');
 
-            await _tokenRepository.Create(value, userId, purpose, expiryUtc);
+            var entity =  await _tokenRepository.Create(value, userId, purpose, expiryUtc);
 
-            return value;
+            return (entity.Id, entity.Value);
         }
 
         public async Task<TokenValidationResult> ValidateToken(string token, Token.TokenPurpose purpose)
@@ -60,7 +64,7 @@ namespace PriceFalcon.Infrastructure
                 return new TokenValidationResult(TokenValidationStatus.Invalid, null);
             }
 
-            if (DateTime.UtcNow > tokenStored.Expiry)
+            if (DateTime.UtcNow > tokenStored.Expiry || tokenStored.IsUsed)
             {
                 return new TokenValidationResult(TokenValidationStatus.Expired, tokenStored.UserId);
             }
@@ -71,6 +75,11 @@ namespace PriceFalcon.Infrastructure
         public async Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose)
         {
             return await _tokenRepository.GetLastToken(userId, purpose);
+        }
+
+        public async Task Revoke(string token)
+        {
+            await _tokenRepository.Revoke(token);
         }
     }
 

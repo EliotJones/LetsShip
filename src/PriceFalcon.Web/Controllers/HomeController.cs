@@ -122,14 +122,30 @@ namespace PriceFalcon.Web.Controllers
                 return BadRequest(ModelState);
             }
 
-            var jobId = await _mediator.Send(
-                new CreateJob
+            var jobToken = await _mediator.Send(
+                new CreateDraftJob
                 {
                     Token = token,
                     Website = new Uri(model.Url)
                 });
 
+            if (jobToken == null)
+            {
+                // TODO: errors
+                return RedirectToAction("Index");
+            }
+
+
+
             return Ok();
+        }
+
+        [HttpGet("create/monitor/{token}")]
+        public async Task<IActionResult> MonitorJobStart(string token)
+        {
+            token = WebUtility.UrlDecode(token);
+
+            return NotFound();
         }
         
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

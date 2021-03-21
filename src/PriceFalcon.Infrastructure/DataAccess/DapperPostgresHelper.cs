@@ -15,7 +15,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             var properties = typeof(T).GetProperties();
 
-            var table = ToSnakeCase(typeof(T).Name.ToLowerInvariant()) + "s";
+            var table = ToSnakeCase(typeof(T).Name) + "s";
 
             var query = new StringBuilder("insert into ").Append(table).Append(" (");
 

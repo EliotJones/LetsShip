@@ -55,6 +55,7 @@ namespace PriceFalcon.App
             }
 
             await _userRepository.SetVerified(tokenValid.UserId.Value);
+            await _tokenService.Revoke(request.Token);
 
             var userEmail = await _userRepository.GetEmailById(tokenValid.UserId.Value);
 

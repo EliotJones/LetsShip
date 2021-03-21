@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -17,11 +18,14 @@ namespace PriceFalcon.App
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
+        private readonly IEmailService _emailService;
 
-        public RequestNewJobTokenHandler(IUserRepository userRepository, ITokenService tokenService)
+        public RequestNewJobTokenHandler(IUserRepository userRepository, ITokenService tokenService,
+            IEmailService emailService)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
+            _emailService = emailService;
         }
 
         public async Task<string?> Handle(RequestNewJobToken request, CancellationToken cancellationToken)
@@ -40,7 +44,16 @@ namespace PriceFalcon.App
                 // todo: expiry check
             }
 
-            return await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(10));
+            var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(10));
+
+            var safeToken = WebUtility.UrlEncode(token.token);
+            var message = $@"<p>Hi!</p><p>You requested a new job for PriceFalcon, use this link to create a new PriceFalcon monitoring job: 
+                <a href='http://localhost:5220/create/{safeToken}'>Get started</a>
+                </p>";
+
+            await _emailService.Send(user.Email, "Create a new job", message);
+
+            return token.token;
         }
     }
 }

@@ -7,11 +7,13 @@ namespace PriceFalcon.Infrastructure.DataAccess
 {
     internal interface ITokenRepository
     {
-        Task Create(string value, int userId, Token.TokenPurpose purpose, DateTime expiry);
+        Task<Token> Create(string value, int userId, Token.TokenPurpose purpose, DateTime expiry);
 
         Task<Token?> GetByValue(string value);
 
         Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose);
+
+        Task Revoke(string value);
     }
 
     internal class TokenRepository : ITokenRepository
@@ -23,7 +25,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
             _connectionProvider = connectionProvider;
         }
 
-        public async Task Create(string value, int userId, Token.TokenPurpose purpose, DateTime expiry)
+        public async Task<Token> Create(string value, int userId, Token.TokenPurpose purpose, DateTime expiry)
         {
             var entity = new Token
             {
@@ -37,6 +39,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
             await using var connection = await _connectionProvider.Get();
 
             await connection.InsertEntity(entity);
+
+            return entity;
         }
 
         public async Task<Token?> GetByValue(string value)
@@ -57,6 +61,15 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 new { userId = userId, purpose = purpose });
 
             return result;
+        }
+
+        public async Task Revoke(string value)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            await connection.ExecuteAsync(
+                "UPDATE tokens SET is_used = TRUE WHERE value = @value;",
+                new {value = value});
         }
     }
 }
