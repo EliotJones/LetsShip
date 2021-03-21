@@ -7,6 +7,13 @@ using PriceFalcon.Domain;
 
 namespace PriceFalcon.Infrastructure.DataAccess
 {
+    public interface IJobLock : IDisposable
+    {
+        void Abandon();
+
+        Task SetStatus(DraftJobStatus status);
+    }
+
     public interface IDraftJobRepository
     {
         Task<DraftJob> Create(Uri website, int userId);
@@ -18,6 +25,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task<IReadOnlyList<DraftJob>> GetJobsInStatus(DraftJobStatus status);
 
         Task SetMonitoringTokenId(int jobId, int monitoringTokenId);
+
+        Task<IJobLock> AcquireJobLock(int jobId);
     }
 
     internal class DraftJobRepository : IDraftJobRepository
@@ -79,9 +88,15 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 new { id = jobId });
         }
 
-        public Task<IReadOnlyList<DraftJob>> GetJobsInStatus(DraftJobStatus status)
+        public async Task<IReadOnlyList<DraftJob>> GetJobsInStatus(DraftJobStatus status)
         {
-            throw new NotImplementedException();
+            await using var connection = await _connectionProvider.Get();
+
+            var jobs = await connection.QueryAsync<DraftJob>(
+                "SELECT * FROM draft_jobs WHERE status = @status ORDER BY created ASC;",
+                new {status = status});
+
+            return jobs.ToList();
         }
 
         public async Task SetMonitoringTokenId(int jobId, int monitoringTokenId)
@@ -91,6 +106,11 @@ namespace PriceFalcon.Infrastructure.DataAccess
             await connection.ExecuteAsync(
                 "UPDATE draft_jobs SET monitoring_token_id = @tokenId WHERE id = @id;",
                 new { id = jobId, tokenId = monitoringTokenId });
+        }
+
+        public Task<IJobLock> AcquireJobLock(int jobId)
+        {
+            throw new NotImplementedException();
         }
     }
 }
