@@ -6,6 +6,8 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using PriceFalcon.App;
+using PriceFalcon.App.DraftJobs;
+using PriceFalcon.App.Registration;
 using PriceFalcon.Web.ViewModels;
 
 namespace PriceFalcon.Web.Controllers

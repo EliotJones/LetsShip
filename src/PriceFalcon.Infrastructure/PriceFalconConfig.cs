@@ -5,6 +5,8 @@
         public EnvironmentType Environment { get; set; } = EnvironmentType.Development;
 
         public string SendGridApiKey { get; set; } = string.Empty;
+
+        public string GeckoDriverPath { get; set; } = string.Empty;
     }
 
     public enum EnvironmentType

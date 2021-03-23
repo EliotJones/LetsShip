@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using PriceFalcon.App;
+using PriceFalcon.App.Registration;
 using PriceFalcon.Infrastructure;
 
 namespace PriceFalcon.Web

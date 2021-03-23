@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -9,9 +10,65 @@ namespace PriceFalcon.Infrastructure.DataAccess
 {
     public interface IJobLock : IDisposable
     {
+        DraftJobStatus Status { get; }
+
         void Abandon();
 
+        void Complete();
+
         Task SetStatus(DraftJobStatus status);
+
+        Task SetHtml(string html);
+    }
+
+    internal class TransactionalJobLock : IJobLock
+    {
+        private readonly int _jobId;
+        private readonly IDbConnection _connection;
+        private readonly IDbTransaction _transaction;
+
+        public DraftJobStatus Status { get; }
+
+        public TransactionalJobLock(int jobId, DraftJobStatus status, IDbConnection connection, IDbTransaction transaction)
+        {
+            _jobId = jobId;
+            Status = status;
+            _connection = connection;
+            _transaction = transaction;
+        }
+
+        public void Abandon()
+        {
+            _transaction.Rollback();
+        }
+
+        public void Complete()
+        {
+            _transaction.Commit();
+        }
+
+        public async Task SetStatus(DraftJobStatus status)
+        {
+            await _connection.ExecuteAsync(
+                "UPDATE draft_jobs SET status = @status WHERE id = @id;",
+                new {status = status, id = _jobId},
+                _transaction);
+        }
+
+        public async Task SetHtml(string html)
+        {
+            await _connection.ExecuteAsync(
+                "UPDATE draft_jobs SET crawled_html = @html WHERE id = @id;",
+                new {html = html, id = _jobId},
+                _transaction);
+        }
+
+        public void Dispose()
+        {
+            _transaction.Dispose();
+            _connection.Dispose();
+        }
+
     }
 
     public interface IDraftJobRepository
@@ -108,9 +165,19 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 new { id = jobId, tokenId = monitoringTokenId });
         }
 
-        public Task<IJobLock> AcquireJobLock(int jobId)
+        public async Task<IJobLock> AcquireJobLock(int jobId)
         {
-            throw new NotImplementedException();
+            var connection = await _connectionProvider.Get();
+            var transaction = await connection.BeginTransactionAsync();
+
+            var status = await connection.QueryFirstOrDefaultAsync<DraftJobStatus>(
+                @"LOCK TABLE draft_jobs IN ROW EXCLUSIVE MODE;
+                    SELECT status FROM draft_jobs WHERE id = @id FOR UPDATE;",
+                new { id = jobId },
+                transaction,
+                1);
+
+            return new TransactionalJobLock(jobId, status, connection, transaction);
         }
     }
 }

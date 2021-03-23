@@ -6,10 +6,25 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Drivers\Linux\geckodriver" />
+    <None Remove="Drivers\Windows\geckodriver.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Drivers\Linux\geckodriver">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Drivers\Windows\geckodriver.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PriceFalcon.Crawler\PriceFalcon.Crawler.csproj" />
     <ProjectReference Include="..\PriceFalcon.Domain\PriceFalcon.Domain.csproj" />
     <ProjectReference Include="..\PriceFalcon.Infrastructure\PriceFalcon.Infrastructure.csproj" />
   </ItemGroup>

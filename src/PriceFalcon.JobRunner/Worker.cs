@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using PriceFalcon.Crawler;
+using PriceFalcon.Domain;
 using PriceFalcon.Infrastructure.DataAccess;
 
 namespace PriceFalcon.JobRunner
@@ -11,11 +14,15 @@ namespace PriceFalcon.JobRunner
     {
         private readonly ILogger<Worker> _logger;
         private readonly IDraftJobRepository _draftJobRepository;
+        private readonly ICrawler _crawler;
 
-        public Worker(ILogger<Worker> logger, IDraftJobRepository draftJobRepository)
+        private readonly List<Task> _running = new List<Task>();
+
+        public Worker(ILogger<Worker> logger, IDraftJobRepository draftJobRepository, ICrawler crawler)
         {
             _logger = logger;
             _draftJobRepository = draftJobRepository;
+            _crawler = crawler;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -23,7 +30,61 @@ namespace PriceFalcon.JobRunner
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                await Task.Delay(1000, stoppingToken);
+
+                var pending = await _draftJobRepository.GetJobsInStatus(DraftJobStatus.Pending);
+
+                foreach (var draftJob in pending)
+                {
+                    var task = Task.Run(
+                            async () =>
+                            {
+                                await RunDraftJob(draftJob, stoppingToken);
+                            },
+                            stoppingToken)
+                        .ContinueWith(t => _running.Remove(t), stoppingToken);
+
+                    _running.Add(task);
+                }
+
+                await Task.Delay(3000, stoppingToken);
+            }
+        }
+
+        private async Task RunDraftJob(DraftJob job, CancellationToken token)
+        {
+            try
+            {
+                using var jobLock = await _draftJobRepository.AcquireJobLock(job.Id);
+
+                if (jobLock.Status != DraftJobStatus.Pending)
+                {
+                    jobLock.Abandon();
+                    return;
+                }
+
+                await jobLock.SetStatus(DraftJobStatus.Processing);
+
+                try
+                {
+                    var pageSource = await _crawler.GetPageSource(job.Url, token);
+
+                    await jobLock.SetHtml(pageSource);
+
+                    await jobLock.SetStatus(DraftJobStatus.Completed);
+
+                    jobLock.Complete();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed crawl for {job.Url} due to an error.");
+
+                    jobLock.Abandon();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(ex, $"Failed to acquire job lock for job {job.Id}.");
+                // ignored
             }
         }
     }
