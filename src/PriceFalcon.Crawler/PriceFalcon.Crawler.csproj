@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.31" />
     <PackageReference Include="Selenium.Support" Version="3.141.0" />
   </ItemGroup>
 

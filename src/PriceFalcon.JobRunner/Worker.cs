@@ -62,11 +62,16 @@ namespace PriceFalcon.JobRunner
                     return;
                 }
 
+                await jobLock.Log("Job is queued, it will run soon.", DraftJobStatus.Queued);
+
                 await jobLock.SetStatus(DraftJobStatus.Processing);
 
                 try
                 {
-                    var pageSource = await _crawler.GetPageSource(job.Url, token);
+                    // ReSharper disable once AccessToDisposedClosure
+                    async Task LoggerMethod(string s) => await jobLock.Log(s, DraftJobStatus.Processing);
+
+                    var pageSource = await _crawler.GetPageSource(job.Url, LoggerMethod, token);
 
                     await jobLock.SetHtml(pageSource);
 

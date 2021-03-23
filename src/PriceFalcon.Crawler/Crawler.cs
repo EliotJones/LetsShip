@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,49 +10,107 @@ using OpenQA.Selenium.Support.UI;
 
 namespace PriceFalcon.Crawler
 {
-    public interface ICrawler
+    public interface ICrawler : IDisposable
     {
-        Task<string> GetPageSource(Uri website, CancellationToken cancellationToken);
+        Task<string> GetPageSource(Uri website, Func<string, Task> asyncLogger, CancellationToken cancellationToken);
     }
 
     public class FirefoxCrawler : ICrawler
     {
         private readonly string _geckoDriverPath;
-        private readonly int _maxTasks;
         private readonly bool _isHeadless;
+        private readonly SemaphoreSlim _semaphore;
+        private readonly Stack<FirefoxDriver> _drivers;
 
         public FirefoxCrawler(string geckoDriverPath, int maxTasks, bool isHeadless)
         {
             _geckoDriverPath = geckoDriverPath;
-            _maxTasks = maxTasks;
             _isHeadless = isHeadless;
+            _semaphore = new SemaphoreSlim(maxTasks, maxTasks);
+            _drivers = new Stack<FirefoxDriver>(maxTasks);
         }
 
-        public Task<string> GetPageSource(Uri website, CancellationToken cancellationToken)
+        public async Task<string> GetPageSource(Uri website, Func<string, Task> asyncLogger, CancellationToken cancellationToken)
         {
             // FirefoxDriver expects the directory but not the file as the path.
             var actualPath = Path.GetDirectoryName(_geckoDriverPath);
 
-            var options = new FirefoxOptions
+            if (!File.Exists(_geckoDriverPath))
             {
-                PageLoadStrategy = PageLoadStrategy.Normal,
-                AcceptInsecureCertificates = true,
-                UnhandledPromptBehavior = UnhandledPromptBehavior.Accept
-            };
-            options.AddArgument("--headless");
+                throw new ArgumentException($"No geckodriver exists at the provided path: {_geckoDriverPath}.");
+            }
 
-            using var driver = new FirefoxDriver(FirefoxDriverService.CreateDefaultService(actualPath), options, TimeSpan.FromSeconds(50));
+            await _semaphore.WaitAsync(cancellationToken);
 
-            driver.Navigate().GoToUrl(website);
+            try
+            {
+                if (!_drivers.TryPop(out var driver))
+                {
+                    var options = new FirefoxOptions
+                    {
+                        PageLoadStrategy = PageLoadStrategy.Normal,
+                        AcceptInsecureCertificates = true,
+                        UnhandledPromptBehavior = UnhandledPromptBehavior.Accept
+                    };
 
-            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30)).Until(
-                d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
+                    if (_isHeadless)
+                    {
+                        options.AddArgument("--headless");
+                    }
 
-            var html = driver.PageSource;
+                    cancellationToken.ThrowIfCancellationRequested();
 
-            driver.Close();
+                    driver = new FirefoxDriver(FirefoxDriverService.CreateDefaultService(actualPath), options, TimeSpan.FromSeconds(120));
 
-            return Task.FromResult(html);
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
+                try
+                {
+                    var stopwatch = Stopwatch.StartNew();
+
+                    await asyncLogger($"About to load: {website}");
+
+                    driver.Navigate().GoToUrl(website);
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Waiting for website at \"{driver.Url}\" to load fully...");
+
+                    new WebDriverWait(driver, TimeSpan.FromSeconds(30)).Until(
+                        d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Page fully loaded.");
+
+                    var html = driver.PageSource;
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Page crawled successfully.");
+
+                    return html;
+                }
+                finally
+                {
+                    _drivers.Push(driver);
+                }
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
+        public void Dispose()
+        {
+            _semaphore?.Dispose();
+
+            foreach (var driver in _drivers)
+            {
+                driver.Dispose();
+            }
         }
     }
 }

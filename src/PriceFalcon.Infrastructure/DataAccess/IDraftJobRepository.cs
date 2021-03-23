@@ -19,6 +19,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task SetStatus(DraftJobStatus status);
 
         Task SetHtml(string html);
+
+        Task Log(string message, DraftJobStatus status);
     }
 
     internal class TransactionalJobLock : IJobLock
@@ -61,6 +63,12 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 "UPDATE draft_jobs SET crawled_html = @html WHERE id = @id;",
                 new {html = html, id = _jobId},
                 _transaction);
+        }
+
+        public async Task Log(string message, DraftJobStatus status)
+        {
+            var entity = new DraftJobLog();
+            await _connection.InsertEntity(entity);
         }
 
         public void Dispose()

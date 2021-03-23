@@ -13,6 +13,44 @@ namespace PriceFalcon.Crawler.Tests
         [Trait("Category", "Integration-Selenium")]
         public async Task GetPageSource_CourtsBarbados_GetsHtml()
         {
+            using var crawler = GetCrawler();
+
+            if (crawler == null)
+            {
+                return;
+            }
+
+            var html = await crawler.GetPageSource(
+                new Uri(@"https://www.shopcourts.com/barbados/products.html/cell-phones-and-domestic-phones/smartphone-64gb-black.html"),
+                _ => Task.CompletedTask,
+                CancellationToken.None);
+
+            Assert.NotNull(html);
+
+            Assert.StartsWith("<html", html);
+        }
+
+        [Fact]
+        [Trait("Category", "Integration-Selenium")]
+        public async Task GetPageSource_SigmaAldrich_GetsHtml()
+        {
+            using var crawler = GetCrawler();
+
+            if (crawler == null)
+            {
+                return;
+            }
+
+            var html = await crawler.GetPageSource(
+                new Uri("https://www.sigmaaldrich.com/catalog/product/aldrich/779601?lang=en&region=GB"),
+                _ => Task.CompletedTask,
+                CancellationToken.None);
+
+            Assert.NotNull(html);
+        }
+
+        private static FirefoxCrawler? GetCrawler()
+        {
             string path;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -24,7 +62,7 @@ namespace PriceFalcon.Crawler.Tests
             }
             else
             {
-                return;
+                return null;
             }
 
             if (!File.Exists(path))
@@ -34,11 +72,7 @@ namespace PriceFalcon.Crawler.Tests
 
             var crawler = new FirefoxCrawler(path, 1, false);
 
-            var html = await crawler.GetPageSource(
-                new Uri(@"https://www.shopcourts.com/barbados/products.html/cell-phones-and-domestic-phones/smartphone-64gb-black.html"),
-                CancellationToken.None);
-
-            Assert.NotNull(html);
+            return crawler;
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Data.Common;
+using System.Data;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +9,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 {
     internal static class DapperPostgresHelper
     {
-        public static async Task InsertEntity<T>(this DbConnection connection, T entity)
+        public static async Task InsertEntity<T>(this IDbConnection connection, T entity)
         {
             var parameters = new DynamicParameters();
 
