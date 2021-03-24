@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -28,15 +29,21 @@ namespace PriceFalcon.Infrastructure.DataAccess
         private readonly int _jobId;
         private readonly IDbConnection _connection;
         private readonly IDbTransaction _transaction;
+        private readonly DbConnection _nonTransactionConnection;
 
         public DraftJobStatus Status { get; }
 
-        public TransactionalJobLock(int jobId, DraftJobStatus status, IDbConnection connection, IDbTransaction transaction)
+        public TransactionalJobLock(int jobId,
+            DraftJobStatus status,
+            IDbConnection connection,
+            IDbTransaction transaction,
+            DbConnection nonTransactionConnection)
         {
             _jobId = jobId;
             Status = status;
             _connection = connection;
             _transaction = transaction;
+            _nonTransactionConnection = nonTransactionConnection;
         }
 
         public void Abandon()
@@ -67,14 +74,22 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
         public async Task Log(string message, DraftJobStatus status)
         {
-            var entity = new DraftJobLog();
-            await _connection.InsertEntity(entity);
+            var entity = new DraftJobLog
+            {
+                DraftJobId = _jobId,
+                Created = DateTime.UtcNow,
+                Message = message,
+                Status = status
+            };
+
+            await _nonTransactionConnection.InsertEntity(entity);
         }
 
         public void Dispose()
         {
             _transaction.Dispose();
             _connection.Dispose();
+            _nonTransactionConnection.Dispose();
         }
 
     }
@@ -92,6 +107,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task SetMonitoringTokenId(int jobId, int monitoringTokenId);
 
         Task<IJobLock> AcquireJobLock(int jobId);
+
+        Task<DraftJob?> GetByMonitoringToken(string token);
     }
 
     internal class DraftJobRepository : IDraftJobRepository
@@ -175,17 +192,26 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
         public async Task<IJobLock> AcquireJobLock(int jobId)
         {
+            var nonTransactionConnection = await _connectionProvider.Get();
             var connection = await _connectionProvider.Get();
             var transaction = await connection.BeginTransactionAsync();
 
             var status = await connection.QueryFirstOrDefaultAsync<DraftJobStatus>(
-                @"LOCK TABLE draft_jobs IN ROW EXCLUSIVE MODE;
-                    SELECT status FROM draft_jobs WHERE id = @id FOR UPDATE;",
+                @"SELECT status FROM draft_jobs WHERE id = @id FOR UPDATE;",
                 new { id = jobId },
-                transaction,
-                1);
+                transaction);
 
-            return new TransactionalJobLock(jobId, status, connection, transaction);
+            return new TransactionalJobLock(jobId, status, connection, transaction, nonTransactionConnection);
+        }
+
+        public async Task<DraftJob?> GetByMonitoringToken(string token)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            return await connection.QueryFirstOrDefaultAsync<DraftJob>(
+                "SELECT dj.* FROM draft_jobs as dj INNER JOIN tokens as t ON t.id = dj.monitoring_token_id WHERE t.Value = @token;",
+                new { token = token });
+
         }
     }
 }

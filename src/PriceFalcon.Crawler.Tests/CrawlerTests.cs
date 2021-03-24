@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+// ReSharper disable AccessToDisposedClosure
 
 namespace PriceFalcon.Crawler.Tests
 {
@@ -49,7 +50,29 @@ namespace PriceFalcon.Crawler.Tests
             Assert.NotNull(html);
         }
 
-        private static FirefoxCrawler? GetCrawler()
+        [Fact]
+        [Trait("Category", "Integration-Selenium")]
+        public async Task GetPageSource_InParallel_GetsHtml()
+        {
+            using var crawler = GetCrawler(2);
+
+            if (crawler == null)
+            {
+                return;
+            }
+
+            var tasks = new Task[2];
+            tasks[0] = Task.Run(() => crawler.GetPageSource(new Uri("https://www.argos.co.uk/product/6205524"), 
+                _ => Task.CompletedTask, 
+                CancellationToken.None));
+            tasks[1] = Task.Run(() => crawler.GetPageSource(new Uri("https://www.argos.co.uk/product/4490070"),
+                _ => Task.CompletedTask,
+                CancellationToken.None));
+
+            await Task.WhenAll(tasks);
+        }
+
+        private static FirefoxCrawler? GetCrawler(int maxTasks = 1)
         {
             string path;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -70,7 +93,7 @@ namespace PriceFalcon.Crawler.Tests
                 throw new InvalidOperationException($"No geckodriver executable found at: {path}.");
             }
 
-            var crawler = new FirefoxCrawler(path, 1, false);
+            var crawler = new FirefoxCrawler(path, maxTasks, false);
 
             return crawler;
         }

@@ -82,6 +82,21 @@ namespace PriceFalcon.Crawler
 
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    var isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
+
+                    if (!isSameUrl)
+                    {
+                        driver.Navigate().GoToUrl(website);
+
+                        isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
+
+                        if (!isSameUrl)
+                        {
+                            await asyncLogger(
+                                $"Loaded URL did not match the one you provided. We loaded: {driver.Url}. It's possible the target site's location detection kicked in and chose the wrong region.");
+                        }
+                    }
+
                     await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Page fully loaded.");
 
                     var html = driver.PageSource;

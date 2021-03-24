@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using MediatR;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using PriceFalcon.App;
 using PriceFalcon.App.DraftJobs;
 using PriceFalcon.App.Registration;
+using PriceFalcon.Web.Services;
 using PriceFalcon.Web.ViewModels;
 
 namespace PriceFalcon.Web.Controllers
@@ -77,7 +79,6 @@ namespace PriceFalcon.Web.Controllers
         [HttpGet("register/{token}")]
         public async Task<IActionResult> Register(string token)
         {
-            token = WebUtility.UrlDecode(token);
             var validated = await _mediator.Send(
                 new ValidateEmailToken
                 {
@@ -97,12 +98,10 @@ namespace PriceFalcon.Web.Controllers
             return RedirectToAction("CreateJob", new {token = WebUtility.UrlEncode(jobToken)});
         }
 
-        [HttpGet("create/{token}")]
+        [HttpGet("create/new/{token}")]
         public async Task<IActionResult> CreateJob(string token)
         {
             ViewData["token"] = token;
-
-            token = WebUtility.UrlDecode(token);
 
             var validationResult = await _mediator.Send(new ValidateNewJobToken(token));
 
@@ -114,11 +113,9 @@ namespace PriceFalcon.Web.Controllers
             return View();
         }
 
-        [HttpPost("create/{token}")]
+        [HttpPost("create/new/{token}")]
         public async Task<IActionResult> CreateJobStart(string token, CreateJobViewModel model)
         {
-            token = WebUtility.UrlDecode(token);
-
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -137,19 +134,69 @@ namespace PriceFalcon.Web.Controllers
                 return RedirectToAction("Index");
             }
 
-
-
-            return Ok();
+            return RedirectToAction("TrackDraftJob", new {token = jobToken});
         }
 
-        [HttpGet("create/monitor/{token}")]
-        public async Task<IActionResult> MonitorJobStart(string token)
+        [HttpGet("create/status/{token}")]
+        public async Task<IActionResult> TrackDraftJob(string token)
+        {
+            var metadata = await _mediator.Send(new GetDraftJobTrackingMetadata(token));
+
+            if (metadata == null)
+            {
+                return NotFound();
+            }
+
+            return View(new TrackDraftJobViewModel
+            {
+                Token = token,
+                Website = metadata.Url.ToString()
+            });
+        }
+
+        [HttpGet("create/track/{token}")]
+        public async Task<IActionResult> TrackDraftJobStatuses(string token)
+        {
+            var items = await _mediator.Send(new GetDraftJobStatusesByToken(token));
+
+            return Ok(items.Select(x => new TrackDraftJobLogViewModel
+            {
+                Status = x.Status,
+                Created = x.Created,
+                Message = x.Message
+            }).ToList());
+        }
+
+        [HttpGet("create/select/{token}")]
+        public async Task<IActionResult> SelectDraftJobItem(string token)
+        {
+            return View("SelectDraftJobItem", token);
+        }
+
+        [HttpGet("create/iframe/token")]
+        public async Task<IActionResult> GetIframeContent(string token)
         {
             token = WebUtility.UrlDecode(token);
 
-            return NotFound();
+            var content = await _mediator.Send(new GetDraftJobHtmlByToken(token));
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return BadRequest();
+            }
+
+            var metadata = await _mediator.Send(new GetDraftJobTrackingMetadata(token));
+
+            if (metadata == null)
+            {
+                return BadRequest();
+            }
+
+            var result = IframeHtmlPreparer.PrepareHtml(content, metadata.Url);
+
+            return Content(result, "text/html");
         }
-        
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

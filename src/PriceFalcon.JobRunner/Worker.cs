@@ -75,6 +75,8 @@ namespace PriceFalcon.JobRunner
 
                     await jobLock.SetHtml(pageSource);
 
+                    await jobLock.Log("Job completed", DraftJobStatus.Completed);
+
                     await jobLock.SetStatus(DraftJobStatus.Completed);
 
                     jobLock.Complete();

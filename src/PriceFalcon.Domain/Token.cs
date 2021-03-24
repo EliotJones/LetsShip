@@ -8,7 +8,7 @@ namespace PriceFalcon.Domain
 
         public int UserId { get; set; }
 
-        public string Value { get; set; }
+        public string Value { get; set; } = string.Empty;
 
         public bool IsUsed { get; set; }
 

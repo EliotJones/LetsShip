@@ -1,0 +1,14 @@
+﻿@model string
+@{
+    Layout = "_SelectLayout";
+}
+
+<div class="row" style="height: 95vh">
+    <div class="col-8">
+        <iframe src="@Url.Action("GetIframeContent", new { token=Model })" id="select-iframe-container" style="width: 100%; height: 100%;"></iframe>
+    </div>
+    <div class="col-4" style="padding: 10px; background: rgb(230,230,230); background: linear-gradient(0deg, rgba(250,250,250,1) 0%, rgba(254,254,254,1) 100%);">
+        <h5>Select the price to monitor</h5>
+        <button class="btn btn-primary btn-lg">Save</button>
+    </div>
+</div>

@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using PriceFalcon.App;
 using PriceFalcon.App.Registration;
 using PriceFalcon.Infrastructure;
+using PriceFalcon.Web.Services;
 
 namespace PriceFalcon.Web
 {
@@ -31,6 +31,9 @@ namespace PriceFalcon.Web
 
             services.AddControllersWithViews();
             services.AddMediatR(typeof(SendEmailInvite).Assembly);
+
+            services.AddSingleton<RequestLogQueue>();
+            services.AddHostedService<RequestLogQueueConsumer>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,6 +55,8 @@ namespace PriceFalcon.Web
             app.UseRouting();
 
             app.UseAuthorization();
+
+            app.UseMiddleware<RequestLogMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {

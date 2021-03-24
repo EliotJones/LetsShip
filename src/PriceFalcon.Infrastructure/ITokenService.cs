@@ -47,8 +47,8 @@ namespace PriceFalcon.Infrastructure
             rng.GetBytes(tokenBuffer);
 
             // Replace the URL unsafe characters for our own rubbish encoding scheme.
-            var value = Convert.ToBase64String(tokenBuffer).Replace('/', '-')
-                .Replace('+', '&');
+            var value = Convert.ToBase64String(tokenBuffer).Replace('/', '_')
+                .Replace('+', '-').TrimEnd('=');
 
             var entity =  await _tokenRepository.Create(value, userId, purpose, expiryUtc);
 

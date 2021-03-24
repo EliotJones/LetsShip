@@ -1,18 +1,22 @@
 ﻿@model IndexViewModel
 
-    <div class="row" style="margin-top: 40vh">
-        <div class="col-lg-2"></div>
-        <div class="col-lg-8">
-            <form asp-action="Start">
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                <div class="form-group">
-                    <label style="display: none" asp-for="Email" class="control-label"></label>
-                    <input asp-for="Email" type="email" class="form-control" />
-                    <span asp-validation-for="Email" class="text-danger"></span>
-                </div>
-                <div class="form-group">
-                    <input type="submit" value="Start" class="btn btn-primary" />
-                </div>
-            </form>
-        </div>
+<div class="row" style="margin-top: 40vh">
+    <div class="col-lg-2"></div>
+    <div class="col-lg-8">
+        <form asp-action="Start">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label style="display: none" asp-for="Email" class="control-label"></label>
+                <input asp-for="Email" type="email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Start" class="btn btn-primary" />
+            </div>
+        </form>
     </div>
+</div>
+
+@section Scripts {
+@{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

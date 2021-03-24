@@ -16,6 +16,7 @@ namespace PriceFalcon.Infrastructure
 
             serviceCollection.AddSingleton<IDraftJobRepository, DraftJobRepository>();
             serviceCollection.AddSingleton<IEmailRepository, EmailRepository>();
+            serviceCollection.AddSingleton<IRequestLogRepository, RequestLogRepository>();
             serviceCollection.AddSingleton<ITokenRepository, TokenRepository>();
             serviceCollection.AddSingleton<IUserRepository, UserRepository>();
 

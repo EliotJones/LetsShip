@@ -1,0 +1,32 @@
+﻿@model TrackDraftJobViewModel
+
+<div id="track-container">
+    <div class="row">
+        <div class="col-1"></div>
+        <div class="col-2">
+            ✅
+        </div>
+        <div class="col-1"></div>
+        <div class="col-7">
+            Job to crawl website (@Model.Website) was created.
+        </div>
+    </div>
+    <div id="track-items-holder">
+
+    </div>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        function onTrackLoaded(data) {
+            console.log('received data', data);
+        }
+
+        $(function() {
+            document.price_falcon_timer = setInterval(function() {
+                    $.getJSON('/create/track/@Model.Token', onTrackLoaded);
+                },
+                1500);
+        });
+    </script>
+}
