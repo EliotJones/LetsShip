@@ -37,18 +37,17 @@ namespace PriceFalcon.App.DraftJobs
                 return null;
             }
 
-            var lastToken = await _tokenService.GetLastToken(user.Id, Token.TokenPurpose.CreateJob);
+            var lastToken = await _tokenService.GetLastToken(user.Id, Token.TokenPurpose.CreateDraftJob);
 
             if (lastToken != null)
             {
                 // todo: expiry check
             }
 
-            var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(10));
+            var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateDraftJob, DateTime.UtcNow.AddDays(10));
 
-            var safeToken = WebUtility.UrlEncode(token.token);
             var message = $@"<p>Hi!</p><p>You requested a new job for PriceFalcon, use this link to create a new PriceFalcon monitoring job: 
-                <a href='http://localhost:5220/create/{safeToken}'>Get started</a>
+                <a href='http://localhost:5220/create/new/{token.token}'>Get started</a>
                 </p>";
 
             await _emailService.Send(user.Email, "Create a new job", message);

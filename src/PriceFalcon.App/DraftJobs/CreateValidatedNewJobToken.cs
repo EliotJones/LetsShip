@@ -33,7 +33,7 @@ namespace PriceFalcon.App.DraftJobs
                 throw new InvalidOperationException($"Cannot create valid new job token because user {request.Email} has not been verified.");
             }
 
-            var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateJob, DateTime.UtcNow.AddDays(10));
+            var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateDraftJob, DateTime.UtcNow.AddDays(10));
 
             return token.token;
         }

@@ -8,7 +8,15 @@ using PriceFalcon.Infrastructure.DataAccess;
 
 namespace PriceFalcon.App.Registration
 {
-    public class SendEmailInvite : IRequest
+    public enum SendEmailInviteResult
+    {
+        Invalid = 0,
+        Sent = 1,
+        AlreadyVerified = 2,
+        QuotaExceeded = 3
+    }
+
+    public class SendEmailInvite : IRequest<SendEmailInviteResult>
     {
         public string Email { get; }
 
@@ -18,7 +26,7 @@ namespace PriceFalcon.App.Registration
         }
     }
 
-    internal class SendEmailInviteHandler : IRequestHandler<SendEmailInvite>
+    internal class SendEmailInviteHandler : IRequestHandler<SendEmailInvite, SendEmailInviteResult>
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
@@ -31,23 +39,32 @@ namespace PriceFalcon.App.Registration
             _emailService = emailService;
         }
 
-        public async Task<Unit> Handle(SendEmailInvite request, CancellationToken cancellationToken)
+        public async Task<SendEmailInviteResult> Handle(SendEmailInvite request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
             {
-                return Unit.Value;
+                return SendEmailInviteResult.Invalid;
             }
 
             var user = await _userRepository.GetByEmail(request.Email);
 
             if (user != null && user.IsVerified)
             {
-                return Unit.Value;
+                return SendEmailInviteResult.AlreadyVerified;
             }
 
             if (user == null)
             {
                 user = await _userRepository.Create(request.Email);
+            }
+            else
+            {
+                var sent = await _emailService.GetAllSentToEmailInPeriod(request.Email, DateTime.UtcNow.AddHours(-5));
+
+                if (sent.Count >= 3)
+                {
+                    return SendEmailInviteResult.QuotaExceeded;
+                }
             }
 
             var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.ValidateEmail, DateTime.UtcNow.AddDays(10));
@@ -58,7 +75,7 @@ namespace PriceFalcon.App.Registration
             
             await _emailService.Send(user.Email, "Verify your email", message);
 
-            return Unit.Value;
+            return SendEmailInviteResult.Sent;
         }
     }
 }

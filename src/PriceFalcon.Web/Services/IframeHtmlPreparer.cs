@@ -57,12 +57,18 @@ namespace PriceFalcon.Web.Services
             {
                 var attr = anchor.Attributes["href"];
 
-                if (attr != null)
-                {
-                    attr.Value = "#";
-                }
+                attr?.Remove();
 
                 anchor.Attributes["target"]?.Remove();
+            }
+
+            var labels = doc.DocumentNode.SelectNodes("//label");
+
+            foreach (var label in labels)
+            {
+                var attr = label.Attributes["for"];
+
+                attr?.Remove();
             }
 
             const string jqueryScript =
@@ -82,6 +88,41 @@ namespace PriceFalcon.Web.Services
             var myscript = HtmlNode.CreateNode(
                 @"
             <script type='text/javascript'>
+                function getParentPayloadString(elem) {
+                    const html = $(elem).prop('outerHTML');
+
+                    const lineage = [];
+
+                    let item = elem;
+                    let i = 0;
+                    while (!!item && i < 10) {
+                        item = $(item).parent();
+                        i++;
+                        if (!item || item.length === 0) {
+                            break;
+                        }
+
+                        item = item[0];
+                        const tag = item.nodeName;
+                        const id = item.id;
+                        const classes = item.className;
+                        lineage.push({
+                            tag: tag,
+                            id: id,
+                            classes: classes,
+                            name: item.getAttribute('name')
+                        });
+                    }
+
+                    const result = {
+                        element: html,
+                        lineage: lineage,
+                        text: $(elem).text()
+                    };
+
+                    return JSON.stringify(result);
+                }
+
                 $(function() {
                     $('*').click(function(e) {
                         if (document.lastHighlighted != null) {
@@ -90,8 +131,12 @@ namespace PriceFalcon.Web.Services
 
                         $(this).css('background-color', 'yellow');
                         document.lastHighlighted = this;
-                        console.log('clicked on', $(this));
                         e.stopPropagation();
+
+                        const elem = this;
+                        const message = getParentPayloadString(elem);
+                        // Let the parent website know.
+                        window.parent.postMessage(message, '*');
                     });
                 });
             </script>");

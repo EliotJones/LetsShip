@@ -28,7 +28,7 @@ namespace PriceFalcon.App.DraftJobs
 
         public async Task<string?> Handle(CreateDraftJob request, CancellationToken cancellationToken)
         {
-            var tokenValidation = await _tokenService.ValidateToken(request.Token, Token.TokenPurpose.CreateJob);
+            var tokenValidation = await _tokenService.ValidateToken(request.Token, Token.TokenPurpose.CreateDraftJob);
 
             if (tokenValidation.Status != TokenValidationStatus.Success)
             {

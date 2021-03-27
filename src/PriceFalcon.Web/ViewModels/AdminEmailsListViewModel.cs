@@ -5,16 +5,16 @@ namespace PriceFalcon.Web.ViewModels
 {
     public class AdminEmailsListViewModel
     {
-        public List<EmailViewModel> Emails { get; set; }
+        public List<EmailViewModel> Emails { get; set; } = new List<EmailViewModel>();
     }
 
     public class EmailViewModel
     {
-        public string Subject { get; set; }
+        public string Subject { get; set; } = string.Empty;
 
-        public string Recipient { get; set; }
+        public string Recipient { get; set; } = string.Empty;
 
-        public string Body { get; set; }
+        public string Body { get; set; } = string.Empty;
 
         public DateTime Created { get; set; }
     }

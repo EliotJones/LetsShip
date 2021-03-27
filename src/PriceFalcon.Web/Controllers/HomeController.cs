@@ -8,9 +8,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using PriceFalcon.App;
 using PriceFalcon.App.DraftJobs;
+using PriceFalcon.App.Jobs;
 using PriceFalcon.App.Registration;
+using PriceFalcon.Domain;
 using PriceFalcon.Web.Services;
 using PriceFalcon.Web.ViewModels;
+using PriceFalcon.Web.ViewModels.Home;
 
 namespace PriceFalcon.Web.Controllers
 {
@@ -45,20 +48,30 @@ namespace PriceFalcon.Web.Controllers
             var user = await _mediator.Send(
                 new GetUserByEmail
                 {
-                    Email = model.Email
+                    Email = model.Email!
                 });
 
             if (user == null || !user.IsVerified)
             {
-                await _mediator.Send(new SendEmailInvite(model.Email));
+                var result = await _mediator.Send(new SendEmailInvite(model.Email!));
 
-            return RedirectToAction("CheckEmail");
+                if (result == SendEmailInviteResult.Invalid)
+                {
+                    return BadRequest($"Invalid or unrecognized email address: {model.Email}.");
+                }
+
+                if (result == SendEmailInviteResult.QuotaExceeded)
+                {
+                    return BadRequest("You have sent too many emails to this address.");
+                }
+
+                return RedirectToAction("CheckEmail");
             }
 
             await _mediator.Send(
                 new RequestNewJobToken
                 {
-                    Email = model.Email
+                    Email = model.Email!
                 });
 
             return RedirectToAction("CheckEmailNewJob");
@@ -95,11 +108,11 @@ namespace PriceFalcon.Web.Controllers
                 Email = validated.Email!
             });
 
-            return RedirectToAction("CreateJob", new {token = WebUtility.UrlEncode(jobToken)});
+            return RedirectToAction("CreateDraftJob", new { token = WebUtility.UrlEncode(jobToken) });
         }
 
         [HttpGet("create/new/{token}")]
-        public async Task<IActionResult> CreateJob(string token)
+        public async Task<IActionResult> CreateDraftJob(string token)
         {
             ViewData["token"] = token;
 
@@ -114,7 +127,7 @@ namespace PriceFalcon.Web.Controllers
         }
 
         [HttpPost("create/new/{token}")]
-        public async Task<IActionResult> CreateJobStart(string token, CreateJobViewModel model)
+        public async Task<IActionResult> CreateDraftJobStart(string token, CreateDraftJobViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -125,7 +138,7 @@ namespace PriceFalcon.Web.Controllers
                 new CreateDraftJob
                 {
                     Token = token,
-                    Website = new Uri(model.Url)
+                    Website = new Uri(model.Url!)
                 });
 
             if (jobToken == null)
@@ -134,7 +147,7 @@ namespace PriceFalcon.Web.Controllers
                 return RedirectToAction("Index");
             }
 
-            return RedirectToAction("TrackDraftJob", new {token = jobToken});
+            return RedirectToAction("TrackDraftJob", new { token = jobToken });
         }
 
         [HttpGet("create/status/{token}")]
@@ -170,14 +183,22 @@ namespace PriceFalcon.Web.Controllers
         [HttpGet("create/select/{token}")]
         public async Task<IActionResult> SelectDraftJobItem(string token)
         {
-            return View("SelectDraftJobItem", token);
+            var jobForDraftJob = await _mediator.Send(new GetJobTokenByDraftJobToken(token));
+
+            if (jobForDraftJob != null)
+            {
+                return RedirectToAction("Index", "Jobs", new { token = jobForDraftJob });
+            }
+
+            return View("SelectDraftJobItem", new CreateJobViewModel
+            {
+                Token = token
+            });
         }
 
         [HttpGet("create/iframe/token")]
         public async Task<IActionResult> GetIframeContent(string token)
         {
-            token = WebUtility.UrlDecode(token);
-
             var content = await _mediator.Send(new GetDraftJobHtmlByToken(token));
 
             if (string.IsNullOrWhiteSpace(content))
@@ -195,6 +216,33 @@ namespace PriceFalcon.Web.Controllers
             var result = IframeHtmlPreparer.PrepareHtml(content, metadata.Url);
 
             return Content(result, "text/html");
+        }
+
+        [HttpPost("create/calculate/token")]
+        public async Task<IActionResult> CalculateSelectValidity(string token, SelectTrackItemViewModel model)
+        {
+            var selection = new HtmlElementSelection
+            {
+                Element = model.Element,
+                Text = model.Text,
+                Lineage = model.Lineage.Select(x => new HtmlElementSummary
+                {
+                    Id = x.Id,
+                    Classes = x.Classes,
+                    Tag = x.Tag,
+                    Name = x.Name
+                }).ToList()
+            };
+
+            var validationResult = await _mediator.Send(new ValidateDraftJobSelection(token, selection));
+
+            return Ok(
+                new SelectTrackItemResponseViewModel
+                {
+                    IsValid = validationResult.IsValid,
+                    Price = validationResult.Price,
+                    Reason = validationResult.Reason
+                });
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

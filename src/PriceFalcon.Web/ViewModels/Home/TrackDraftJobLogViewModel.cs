@@ -1,7 +1,7 @@
 ﻿using System;
 using PriceFalcon.Domain;
 
-namespace PriceFalcon.Web.ViewModels
+namespace PriceFalcon.Web.ViewModels.Home
 {
     public class TrackDraftJobLogViewModel
     {

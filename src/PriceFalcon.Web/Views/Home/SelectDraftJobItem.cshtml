@@ -1,14 +1,61 @@
-﻿@model string
+﻿@model PriceFalcon.Web.ViewModels.Home.CreateJobViewModel
 @{
     Layout = "_SelectLayout";
 }
 
 <div class="row" style="height: 95vh">
     <div class="col-8">
-        <iframe src="@Url.Action("GetIframeContent", new { token=Model })" id="select-iframe-container" style="width: 100%; height: 100%;"></iframe>
+        <iframe src="@Url.Action("GetIframeContent", new { token=Model.Token })" id="select-iframe-container" style="width: 100%; height: 100%;"></iframe>
     </div>
-    <div class="col-4" style="padding: 10px; background: rgb(230,230,230); background: linear-gradient(0deg, rgba(250,250,250,1) 0%, rgba(254,254,254,1) 100%);">
-        <h5>Select the price to monitor</h5>
-        <button class="btn btn-primary btn-lg">Save</button>
+    <div class="col-4" style="padding: 10px;">
+        <form asp-action="Create" asp-controller="Jobs">
+            <input asp-for="SelectionJson" type="text" style="display: none" id="json-payload" />
+            <input asp-for="Token" type="text" style="display: none" />
+            <h5>Select the price to monitor</h5>
+            <div id="selected-value-container">
+                <div class="row">
+                    <div class="col-4">Text:</div>
+                    <div class="col-8" id="selected-text-display"></div>
+                </div>
+                <div id="selected-value-container-inner">
+
+                </div>
+            </div>
+            <button id="save-button" class="btn btn-outline-light disabled" disabled="disabled">Save</button>
+        </form>
     </div>
 </div>
+
+@section Scripts {
+    <script type="text/javascript">
+        function onServerCalculated(data, item) {
+            console.log('server checked the selection and responded with', data);
+            if (data.isValid) {
+                $("#save-button").prop('disabled', '');
+                $("#save-button").prop('class', 'btn btn-success');
+                $('#selected-value-container-inner').html("<div class='row'><div class='col-4'>Current price:</div><div class='col-8'>" + data.price.toFixed(2) + "</div></div>");
+
+            } else {
+                $("#save-button").prop('disabled', 'disabled');
+                $("#save-button").prop('class', 'btn btn-outline-light disabled');
+                $('#selected-value-container-inner').html("<div class='alert alert-danger' role='alert'>" + data.reason + "</div>");
+            }
+        }
+
+        function onMessageReceived(msgEvent) {
+            $("#json-payload").val(msgEvent.data);
+
+            var item = JSON.parse(msgEvent.data);
+            $("#selected-text-display").text(item.text);
+            $.post('@Url.Action("CalculateSelectValidity", new {token = Model.Token})',
+                item,
+                function(data) {
+                    onServerCalculated(data, item);
+                });
+        }
+
+        $(function() {
+            window.addEventListener('message', onMessageReceived);
+        });
+    </script>
+}

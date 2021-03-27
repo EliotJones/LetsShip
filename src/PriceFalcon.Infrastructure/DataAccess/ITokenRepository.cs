@@ -14,6 +14,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose);
 
         Task Revoke(string value);
+
+        Task<Token?> GetById(int id);
     }
 
     internal class TokenRepository : ITokenRepository
@@ -47,7 +49,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
         {
             await using var connection = await _connectionProvider.Get();
 
-            var result = await connection.QueryFirstOrDefaultAsync<Token?>("SELECT * FROM tokens WHERE value = @value", new { value });
+            var result = await connection.QueryFirstOrDefaultAsync<Token?>("SELECT * FROM tokens WHERE value = @value;", new { value = value });
 
             return result;
         }
@@ -70,6 +72,15 @@ namespace PriceFalcon.Infrastructure.DataAccess
             await connection.ExecuteAsync(
                 "UPDATE tokens SET is_used = TRUE WHERE value = @value;",
                 new {value = value});
+        }
+
+        public async Task<Token?> GetById(int id)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            var result = await connection.QueryFirstOrDefaultAsync<Token?>("SELECT * FROM tokens WHERE id = @id;", new {id = id});
+
+            return result;
         }
     }
 }

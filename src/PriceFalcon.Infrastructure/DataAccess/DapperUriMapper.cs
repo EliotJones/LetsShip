@@ -13,7 +13,12 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
         public override Uri Parse(object value)
         {
-            return new Uri(value.ToString());
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value), "Could not convert value to Uri.");
+            }
+
+            return new Uri(value.ToString() ?? "about:empty");
         }
     }
 }

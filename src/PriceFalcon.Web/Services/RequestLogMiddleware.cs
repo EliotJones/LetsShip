@@ -40,11 +40,19 @@ namespace PriceFalcon.Web.Services
 
             stopwatch.Stop();
 
+            var url = context.Request.GetDisplayUrl();
+
+            if (url.Contains("/create/track", StringComparison.OrdinalIgnoreCase) && context.Response.StatusCode / 100 == 2)
+            {
+                // Skip the polling endpoints.
+                return;
+            }
+
             _queue.Add(new RequestLog
             {
                 Created = DateTime.UtcNow,
                 IpAddress = ipAddress,
-                Url = context.Request.GetDisplayUrl(),
+                Url = url,
                 ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
                 StatusCode = context.Response.StatusCode,
                 Method = context.Request.Method

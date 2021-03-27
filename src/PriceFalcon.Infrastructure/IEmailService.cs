@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 using PriceFalcon.Domain;
 using PriceFalcon.Infrastructure.DataAccess;
@@ -12,6 +14,8 @@ namespace PriceFalcon.Infrastructure
         Task<EmailSendResult> Send(string recipient, string subject, string body);
 
         Task<IReadOnlyList<Email>> GetAllSent();
+
+        Task<IReadOnlyList<Email>> GetAllSentToEmailInPeriod(string recipient, DateTime fromInclusive);
     }
 
     public enum EmailSendResult
@@ -19,7 +23,8 @@ namespace PriceFalcon.Infrastructure
         Success = 1,
         Error = 2,
         InvalidRecipient = 3,
-        ServiceUnavailable = 4
+        ServiceUnavailable = 4,
+        QuotaExceeded = 5
     }
 
     internal class SendGridEmailService : IEmailService
@@ -54,6 +59,20 @@ namespace PriceFalcon.Infrastructure
             if (response.IsSuccessStatusCode)
             {
                 await _emailRepository.Create(body, recipient, subject);
+
+                return EmailSendResult.Success;
+            }
+
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                return EmailSendResult.QuotaExceeded;
+            }
+
+            if (response.StatusCode == HttpStatusCode.ServiceUnavailable
+                || response.StatusCode == HttpStatusCode.BadGateway
+                || response.StatusCode == HttpStatusCode.GatewayTimeout)
+            {
+                return EmailSendResult.ServiceUnavailable;
             }
 
             return response.IsSuccessStatusCode ? EmailSendResult.Success : EmailSendResult.Error;
@@ -62,6 +81,16 @@ namespace PriceFalcon.Infrastructure
         public async Task<IReadOnlyList<Email>> GetAllSent()
         {
             return await _emailRepository.GetAll();
+        }
+
+        public async Task<IReadOnlyList<Email>> GetAllSentToEmailInPeriod(string recipient, DateTime fromInclusive)
+        {
+            if (fromInclusive > DateTime.UtcNow || string.IsNullOrWhiteSpace(recipient))
+            {
+                return Array.Empty<Email>();
+            }
+
+            return await _emailRepository.GetAllSentToEmailInPeriod(recipient, fromInclusive);
         }
     }
 }

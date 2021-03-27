@@ -28,6 +28,8 @@ namespace PriceFalcon.Infrastructure
         Task<Token?> GetLastToken(int userId, Token.TokenPurpose purpose);
 
         Task Revoke(string token);
+
+        Task<string?> GetById(int id);
     }
 
     internal class TokenService : ITokenService
@@ -80,6 +82,11 @@ namespace PriceFalcon.Infrastructure
         public async Task Revoke(string token)
         {
             await _tokenRepository.Revoke(token);
+        }
+
+        public async Task<string?> GetById(int id)
+        {
+            return (await _tokenRepository.GetById(id))?.Value;
         }
     }
 

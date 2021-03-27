@@ -12,6 +12,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task Create(string body, string to, string subject);
 
         Task<IReadOnlyList<Email>> GetAll();
+
+        Task<IReadOnlyList<Email>> GetAllSentToEmailInPeriod(string recipient, DateTime fromInclusive);
     }
 
     internal class EmailRepository : IEmailRepository
@@ -47,6 +49,17 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             var results = await connection.QueryAsync<Email>(
                 "SELECT * FROM emails ORDER BY created DESC;");
+
+            return results.ToList();
+        }
+
+        public async Task<IReadOnlyList<Email>> GetAllSentToEmailInPeriod(string recipient, DateTime fromInclusive)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            var results = await connection.QueryAsync<Email>(
+                "SELECT * FROM emails WHERE recipient = @recipient AND @created >= @fromInclusive;",
+                new {recipient = recipient, fromInclusive = fromInclusive});
 
             return results.ToList();
         }
