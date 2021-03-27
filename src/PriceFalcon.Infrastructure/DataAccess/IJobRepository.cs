@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -97,14 +99,116 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 new {draftJobId = draftJobId});
         }
 
-        public Task<IReadOnlyList<Job>> GetJobsDue()
+        public async Task<IReadOnlyList<Job>> GetJobsDue()
         {
-            throw new NotImplementedException();
+            await using var connection = await _connectionProvider.Get();
+
+            var results = await connection.QueryAsync<Job>(
+                "SELECT * FROM jobs WHERE next_due_date <= @date;",
+                new {date = DateTime.UtcNow});
+
+            return results.ToList();
         }
 
-        public Task<IJobLock> AcquireJobLock(int jobId, CancellationToken cancellationToken)
+        public async Task<IJobLock> AcquireJobLock(int jobId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var connection = await _connectionProvider.Get();
+
+            try
+            {
+                var transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+                var job = await connection.QueryFirstAsync<Job>(
+                    "SELECT * FROM jobs WHERE id = @id FOR UPDATE;",
+                    new {id = jobId},
+                    transaction);
+
+                return new TransactionJobLock(job, transaction, connection);
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+        }
+    }
+
+    internal class TransactionJobLock : IJobLock
+    {
+        private readonly Job _job;
+        private readonly IDbTransaction _transaction;
+        private readonly IDbConnection _connection;
+
+        public JobStatus Status => _job.Status;
+
+        public DateTime Due => _job.NextDueDate;
+
+        public TransactionJobLock(Job job, IDbTransaction transaction, IDbConnection connection)
+        {
+            _job = job;
+            _transaction = transaction;
+            _connection = connection;
+        }
+
+        public void Abandon()
+        {
+            _transaction.Rollback();
+        }
+
+        public async Task Complete(decimal price, string message)
+        {
+            var random = new Random(DateTime.UtcNow.Millisecond);
+
+            var nextDue = DateTime.UtcNow.AddHours(random.Next(3, 5)).AddMinutes(random.Next(25));
+
+            var entity = new JobRun
+            {
+                Status = JobRunStatus.Succeeded,
+                Created = DateTime.UtcNow,
+                JobId = _job.Id,
+                Message = message,
+                Price = price
+            };
+
+            await _connection.InsertEntity(entity);
+
+            await _connection.ExecuteAsync(
+                "UPDATE jobs SET next_due_date = @date WHERE id = @id;",
+                new {date = nextDue, id = _job.Id},
+                _transaction);
+
+            _transaction.Commit();
+        }
+
+        public async Task CompleteWithError(string message)
+        {
+            var random = new Random(DateTime.UtcNow.Millisecond);
+
+            var nextDue = DateTime.UtcNow.AddMinutes(random.Next(5, 25));
+
+            var entity = new JobRun
+            {
+                Status = JobRunStatus.Failed,
+                Created = DateTime.UtcNow,
+                JobId = _job.Id,
+                Message = message
+            };
+
+            await _connection.InsertEntity(entity);
+
+            await _connection.ExecuteAsync(
+                "UPDATE jobs SET next_due_date = @date WHERE id = @id;",
+                new { date = nextDue, id = _job.Id },
+                _transaction);
+
+            _transaction.Commit();
+        }
+
+        public void Dispose()
+        {
+            _transaction.Dispose();
+
+            _connection.Dispose();
         }
     }
 }

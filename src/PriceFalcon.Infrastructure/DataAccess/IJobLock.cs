@@ -13,5 +13,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
         void Abandon();
 
         Task Complete(decimal price, string message);
+
+        Task CompleteWithError(string message);
     }
 }

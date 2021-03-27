@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using PriceFalcon.Crawler;
@@ -156,8 +157,21 @@ namespace PriceFalcon.JobRunner
 
                 try
                 {
+                    var selector = JsonSerializer.Deserialize<HtmlElementSelection>(job.Selector, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
 
-                    await jobLock.Complete(12, "Hello");
+                    var result = await _crawler.GetPrice(job.Url, selector, job.Xpath, token);
+
+                    if (result.IsSuccess && result.Price.HasValue)
+                    {
+                        await jobLock.Complete(12, result.Log);
+                    }
+                    else
+                    {
+                        await jobLock.CompleteWithError(result.Log);
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -12,8 +12,14 @@ namespace PriceFalcon.Domain
 
         public decimal? Price { get; set; }
 
-        public int Status { get; set; }
+        public JobRunStatus Status { get; set; }
 
         public DateTime Created { get; set; }
+    }
+
+    public enum JobRunStatus
+    {
+        Succeeded = 1,
+        Failed = 2
     }
 }
