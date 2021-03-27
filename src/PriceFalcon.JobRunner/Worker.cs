@@ -14,14 +14,16 @@ namespace PriceFalcon.JobRunner
     {
         private readonly ILogger<Worker> _logger;
         private readonly IDraftJobRepository _draftJobRepository;
+        private readonly IJobRepository _jobRepository;
         private readonly ICrawler _crawler;
 
         private readonly List<Task> _running = new List<Task>();
 
-        public Worker(ILogger<Worker> logger, IDraftJobRepository draftJobRepository, ICrawler crawler)
+        public Worker(ILogger<Worker> logger, IDraftJobRepository draftJobRepository, IJobRepository jobRepository, ICrawler crawler)
         {
             _logger = logger;
             _draftJobRepository = draftJobRepository;
+            _jobRepository = jobRepository;
             _crawler = crawler;
         }
 
@@ -35,6 +37,11 @@ namespace PriceFalcon.JobRunner
 
                 foreach (var draftJob in pending)
                 {
+                    if (_running.Count >= 5)
+                    {
+                        continue;
+                    }
+
                     var task = Task.Run(
                             async () =>
                             {
@@ -46,15 +53,51 @@ namespace PriceFalcon.JobRunner
                     _running.Add(task);
                 }
 
-                await Task.Delay(3000, stoppingToken);
+                var pendingJobs = await _jobRepository.GetJobsDue();
+
+                foreach (var job in pendingJobs)
+                {
+                    if (_running.Count >= 5)
+                    {
+                        continue;
+                    }
+
+                    var task = Task.Run(
+                            async () =>
+                            {
+                                await RunJob(job, stoppingToken);
+                            },
+                            stoppingToken)
+                        .ContinueWith(t => _running.Remove(t), stoppingToken);
+
+                    _running.Add(task);
+                }
+
+                await Task.Delay(5000, stoppingToken);
             }
+        }
+
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Disposing of crawler.");
+
+            try
+            {
+                _crawler.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error disposing of crawler.");
+            }
+
+            return base.StopAsync(cancellationToken);
         }
 
         private async Task RunDraftJob(DraftJob job, CancellationToken token)
         {
             try
             {
-                using var jobLock = await _draftJobRepository.AcquireJobLock(job.Id);
+                using var jobLock = await _draftJobRepository.AcquireJobLock(job.Id, token);
 
                 if (jobLock.Status != DraftJobStatus.Pending)
                 {
@@ -91,6 +134,40 @@ namespace PriceFalcon.JobRunner
             catch (Exception ex)
             {
                 _logger.LogInformation(ex, $"Failed to acquire job lock for job {job.Id}.");
+                // ignored
+            }
+        }
+
+        private async Task RunJob(Job job, CancellationToken token)
+        {
+            try
+            {
+                using var jobLock = await _jobRepository.AcquireJobLock(job.Id, token);
+
+                if (jobLock.Status != JobStatus.Active)
+                {
+                    jobLock.Abandon();
+                }
+
+                if (jobLock.Due > DateTime.UtcNow)
+                {
+                    jobLock.Abandon();
+                }
+
+                try
+                {
+
+                    await jobLock.Complete(12, "Hello");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogInformation(ex, $"Failed job run for {job.Url} ({job.Id}) due to an error.");
+                    jobLock.Abandon();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, $"Failed to acquire job lock for job {job.Id}.");
                 // ignored
             }
         }

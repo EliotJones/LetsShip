@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using PriceFalcon.Domain;
 
 namespace PriceFalcon.Infrastructure.DataAccess
 {
-    public interface IJobLock : IDisposable
+    public interface IDraftJobLock : IDisposable
     {
         DraftJobStatus Status { get; }
 
@@ -24,7 +25,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task Log(string message, DraftJobStatus status);
     }
 
-    internal class TransactionalJobLock : IJobLock
+    internal class TransactionalDraftJobLock : IDraftJobLock
     {
         private readonly int _jobId;
         private readonly IDbConnection _connection;
@@ -33,7 +34,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
         public DraftJobStatus Status { get; }
 
-        public TransactionalJobLock(int jobId,
+        public TransactionalDraftJobLock(int jobId,
             DraftJobStatus status,
             IDbConnection connection,
             IDbTransaction transaction,
@@ -106,7 +107,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
         Task SetMonitoringTokenId(int jobId, int monitoringTokenId);
 
-        Task<IJobLock> AcquireJobLock(int jobId);
+        Task<IDraftJobLock> AcquireJobLock(int jobId, CancellationToken cancellationToken);
 
         Task<DraftJob?> GetByMonitoringToken(string token);
     }
@@ -190,18 +191,19 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 new { id = jobId, tokenId = monitoringTokenId });
         }
 
-        public async Task<IJobLock> AcquireJobLock(int jobId)
+        public async Task<IDraftJobLock> AcquireJobLock(int jobId, CancellationToken cancellationToken)
         {
             var nonTransactionConnection = await _connectionProvider.Get();
             var connection = await _connectionProvider.Get();
-            var transaction = await connection.BeginTransactionAsync();
+            var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
             var status = await connection.QueryFirstOrDefaultAsync<DraftJobStatus>(
-                @"SELECT status FROM draft_jobs WHERE id = @id FOR UPDATE;",
+                new CommandDefinition(@"SELECT status FROM draft_jobs WHERE id = @id FOR UPDATE;",
                 new { id = jobId },
-                transaction);
+                transaction,
+                cancellationToken: cancellationToken));
 
-            return new TransactionalJobLock(jobId, status, connection, transaction, nonTransactionConnection);
+            return new TransactionalDraftJobLock(jobId, status, connection, transaction, nonTransactionConnection);
         }
 
         public async Task<DraftJob?> GetByMonitoringToken(string token)

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using PriceFalcon.Domain;
@@ -13,6 +15,10 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task Create(int tokenId, HtmlElementSelection selector, decimal price, string xpath, int draftJobId);
 
         Task<Job?> GetByDraftJobId(int draftJobId);
+
+        Task<IReadOnlyList<Job>> GetJobsDue();
+
+        Task<IJobLock> AcquireJobLock(int jobId, CancellationToken cancellationToken);
     }
 
     internal class JobRepository : IJobRepository
@@ -89,6 +95,16 @@ namespace PriceFalcon.Infrastructure.DataAccess
             return await connection.QueryFirstOrDefaultAsync<Job>(
                 "SELECT * FROM jobs WHERE draft_job_id = @draftJobId;",
                 new {draftJobId = draftJobId});
+        }
+
+        public Task<IReadOnlyList<Job>> GetJobsDue()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IJobLock> AcquireJobLock(int jobId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
         }
     }
 }
