@@ -21,6 +21,14 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task<IReadOnlyList<Job>> GetJobsDue();
 
         Task<IJobLock> AcquireJobLock(int jobId, CancellationToken cancellationToken);
+
+        Task<IReadOnlyList<int>> GetJobIdsWithRunsNotNotified();
+
+        Task<IReadOnlyList<JobRun>> GetJobRunsByJobId(int jobId);
+
+        Task MarkAllJobRunsNotifiedForJob(int jobId);
+
+        Task<Job> GetById(int id);
     }
 
     internal class JobRepository : IJobRepository
@@ -59,6 +67,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
                     start_price,
                     status,
                     xpath,
+                    is_notified,
                     created
                 )
                 SELECT  dj.id,
@@ -71,6 +80,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
                         @price,
                         @status,
                         @xpath,
+                        FALSE,
                         @created
                 FROM draft_jobs as dj
                 WHERE dj.id = @draftJobId;";
@@ -130,6 +140,45 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 connection.Dispose();
                 throw;
             }
+        }
+
+        public async Task<IReadOnlyList<int>> GetJobIdsWithRunsNotNotified()
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            var results = await connection.QueryAsync<int>(
+                "SELECT distinct(job_id) FROM job_runs WHERE is_notified = FALSE;");
+
+            return results.ToList();
+        }
+
+        public async Task<IReadOnlyList<JobRun>> GetJobRunsByJobId(int jobId)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            var results = await connection.QueryAsync<JobRun>(
+                "SELECT * FROM job_runs WHERE job_id = @id ORDER BY created DESC;",
+                new {id = jobId});
+
+            return results.ToList();
+        }
+
+        public async Task MarkAllJobRunsNotifiedForJob(int jobId)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            await connection.ExecuteAsync(
+                "UPDATE job_runs SET is_notified = TRUE WHERE job_id = @id;",
+                new {id = jobId});
+        }
+
+        public async Task<Job> GetById(int id)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            return await connection.QuerySingleAsync<Job>(
+                "SELECT * FROM jobs WHERE id = @id;",
+                new {id = id});
         }
     }
 

@@ -1,4 +1,6 @@
-﻿namespace PriceFalcon.Infrastructure
+﻿using System;
+
+namespace PriceFalcon.Infrastructure
 {
     public class PriceFalconConfig
     {
@@ -7,6 +9,8 @@
         public string SendGridApiKey { get; set; } = string.Empty;
 
         public string GeckoDriverPath { get; set; } = string.Empty;
+
+        public Uri SiteUrl { get; set; } = new Uri("about:blank");
     }
 
     public enum EnvironmentType

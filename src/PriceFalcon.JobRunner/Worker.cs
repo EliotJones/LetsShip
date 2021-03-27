@@ -166,7 +166,7 @@ namespace PriceFalcon.JobRunner
 
                     if (result.IsSuccess && result.Price.HasValue)
                     {
-                        await jobLock.Complete(12, result.Log);
+                        await jobLock.Complete(result.Price.Value, result.Log);
                     }
                     else
                     {

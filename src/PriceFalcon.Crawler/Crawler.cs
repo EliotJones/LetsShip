@@ -139,9 +139,9 @@ namespace PriceFalcon.Crawler
 
                         logger.AppendLine("Page fully loaded.");
 
-                        var element = driver.FindElementByXPath(xpath);
+                        var elements = driver.FindElementsByXPath(xpath);
 
-                        if (element == null)
+                        if (elements == null)
                         {
                             return Task.FromResult(
                                 new PriceJobResult
@@ -150,6 +150,13 @@ namespace PriceFalcon.Crawler
                                     IsSuccess = false
                                 });
                         }
+
+                        if (elements.Count > 1)
+                        {
+                            
+                        }
+
+                        var element = elements[0];
 
                         if (!PriceCrawlValidator.TryGetPrice(element.Text, out var price))
                         {

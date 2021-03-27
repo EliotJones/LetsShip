@@ -14,6 +14,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task<IReadOnlyList<Email>> GetAll();
 
         Task<IReadOnlyList<Email>> GetAllSentToEmailInPeriod(string recipient, DateTime fromInclusive);
+
+        Task<int> GetSentTodayCount();
     }
 
     internal class EmailRepository : IEmailRepository
@@ -29,7 +31,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
         {
             await using var connection = await _connectionProvider.Get();
 
-            var userId = await connection.QueryFirstOrDefaultAsync<int?>("SELECT id FROM users WHERE email = @email;", new {email = to});
+            var userId = await connection.QueryFirstOrDefaultAsync<int?>("SELECT id FROM users WHERE email = @email;", new { email = to });
 
             var email = new Email
             {
@@ -59,9 +61,18 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             var results = await connection.QueryAsync<Email>(
                 "SELECT * FROM emails WHERE recipient = @recipient AND @created >= @fromInclusive;",
-                new {recipient = recipient, fromInclusive = fromInclusive});
+                new { recipient = recipient, fromInclusive = fromInclusive });
 
             return results.ToList();
+        }
+
+        public async Task<int> GetSentTodayCount()
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            return await connection.ExecuteScalarAsync<int>(
+                "SELECT count(*) FROM emails WHERE created >= @date;",
+                new {date = DateTime.UtcNow.Date});
         }
     }
 }

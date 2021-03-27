@@ -14,6 +14,10 @@ namespace PriceFalcon.Domain
 
         public JobRunStatus Status { get; set; }
 
+        public bool IsNotified { get; set; }
+
+        public int? EmailId { get; set; }
+
         public DateTime Created { get; set; }
     }
 

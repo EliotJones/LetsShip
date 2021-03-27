@@ -16,6 +16,8 @@ namespace PriceFalcon.Infrastructure
         Task<IReadOnlyList<Email>> GetAllSent();
 
         Task<IReadOnlyList<Email>> GetAllSentToEmailInPeriod(string recipient, DateTime fromInclusive);
+
+        Task<int> GetSentTodayCount();
     }
 
     public enum EmailSendResult
@@ -40,6 +42,13 @@ namespace PriceFalcon.Infrastructure
 
         public async Task<EmailSendResult> Send(string recipient, string subject, string body)
         {
+            var sentToday = await _emailRepository.GetSentTodayCount();
+
+            if (sentToday >= 100)
+            {
+                return EmailSendResult.QuotaExceeded;
+            }
+
             var key = _config.SendGridApiKey;
 
             var client = new SendGridClient(key);
@@ -91,6 +100,11 @@ namespace PriceFalcon.Infrastructure
             }
 
             return await _emailRepository.GetAllSentToEmailInPeriod(recipient, fromInclusive);
+        }
+
+        public Task<int> GetSentTodayCount()
+        {
+            return _emailRepository.GetSentTodayCount();
         }
     }
 }
