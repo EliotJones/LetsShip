@@ -1,0 +1,20 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Set up dotnet core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: "5.0.x"
+
+      - name: Restore the solution
+        run: dotnet restore src/PriceFalcon.sln
+
+      - name: Build the solution
+        run: dotnet build --no-restore -c Release src/PriceFalcon.sln
