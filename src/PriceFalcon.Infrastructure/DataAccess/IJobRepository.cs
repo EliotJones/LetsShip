@@ -67,7 +67,6 @@ namespace PriceFalcon.Infrastructure.DataAccess
                     start_price,
                     status,
                     xpath,
-                    is_notified,
                     created
                 )
                 SELECT  dj.id,
@@ -80,7 +79,6 @@ namespace PriceFalcon.Infrastructure.DataAccess
                         @price,
                         @status,
                         @xpath,
-                        FALSE,
                         @created
                 FROM draft_jobs as dj
                 WHERE dj.id = @draftJobId;";

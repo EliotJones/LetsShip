@@ -8,17 +8,19 @@ COPY ../../src .
 
 RUN mkdir crawler
 
-RUN dotnet publish -c Release -r linux-x64 -o crawler PriceFalcon.JobRunner/PriceFalcon.JobRunner.csproj
+RUN dotnet restore -v n -r linux-x64 PriceFalcon.JobRunner/PriceFalcon.JobRunner.csproj
+
+RUN dotnet publish --no-restore -c Release -r linux-x64 -o crawler PriceFalcon.JobRunner/PriceFalcon.JobRunner.csproj
 
 FROM mcr.microsoft.com/dotnet/runtime:5.0.4-focal as run
 
 RUN apt-get update
 
 RUN apt-get install -y xvfb
+RUN apt-get install -y firefox
 
 # For Xvfb (X virtual frame buffer, enables in-memory GUI without GUI installed).
 ENV DISPLAY :99
-RUN Xvfb :99
 
 # From https://github.com/SeleniumHQ/docker-selenium/blob/trunk/NodeBase/Dockerfile
 ENV LANG_WHICH en
@@ -41,12 +43,15 @@ RUN apt-get -qqy update \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get -qyy clean
 
-RUN apt-get install -y firefox
-
 RUN mkdir app
 
 WORKDIR /app
 
+COPY docker/crawler/run-xvfb.sh /app/run-xvfb.sh
+RUN chmod a+x /app/run-xvfb.sh
+
 COPY --from=build /build/crawler .
+
+CMD /app/run-xvfb.sh
 
 ENTRYPOINT [ "dotnet", "PriceFalcon.JobRunner.dll" ]

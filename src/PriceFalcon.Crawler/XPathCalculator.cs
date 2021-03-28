@@ -44,6 +44,19 @@ namespace PriceFalcon.Crawler
                 }
             }
 
+            var itemPropAttr = element.DocumentNode.FirstChild.Attributes["itemprop"];
+
+            if (itemPropAttr != null && !string.IsNullOrWhiteSpace(itemPropAttr.Value))
+            {
+                xpath = $"//{tagType}[@itemprop='{itemPropAttr.Value}']";
+                var itempropNodes = doc.DocumentNode.SelectNodes(xpath).ToList();
+
+                if (itempropNodes.Count == 1)
+                {
+                    return true;
+                }
+            }
+
             var previous = new List<HtmlElementSummary>();
             foreach (var parent in selection.Lineage.Take(5))
             {
