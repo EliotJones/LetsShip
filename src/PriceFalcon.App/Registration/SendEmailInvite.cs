@@ -31,12 +31,14 @@ namespace PriceFalcon.App.Registration
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private readonly PriceFalconConfig _config;
 
-        public SendEmailInviteHandler(IUserRepository userRepository, ITokenService tokenService, IEmailService emailService)
+        public SendEmailInviteHandler(IUserRepository userRepository, ITokenService tokenService, IEmailService emailService, PriceFalconConfig config)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
             _emailService = emailService;
+            _config = config;
         }
 
         public async Task<SendEmailInviteResult> Handle(SendEmailInvite request, CancellationToken cancellationToken)
@@ -68,10 +70,13 @@ namespace PriceFalcon.App.Registration
             }
 
             var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.ValidateEmail, DateTime.UtcNow.AddDays(10));
+
+            var uri = new Uri(_config.SiteUrl, $"register/{token.token}");
+
             var message = $@"<p>Hi there,</p>
                 <p>In order to begin using PriceFalcon you need to validate your email. Use the link below to validate your email and create a new watch job.</p>
                 <p>If you didn't sign up you can safely ignore this email, sorry for the inconvenience.</p>
-                <p><a href='http://localhost:5220/register/{token.token}'>Sign me up!</a></p>";
+                <p><a href='{uri}'>Sign me up!</a></p>";
             
             await _emailService.Send(user.Email, "Verify your email", message);
 
