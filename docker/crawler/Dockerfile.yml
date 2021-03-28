@@ -1,0 +1,52 @@
+FROM mcr.microsoft.com/dotnet/sdk:5.0 as build
+
+RUN mkdir build
+
+WORKDIR /build
+
+COPY ../../src .
+
+RUN mkdir crawler
+
+RUN dotnet publish -c Release -r linux-x64 -o crawler PriceFalcon.JobRunner/PriceFalcon.JobRunner.csproj
+
+FROM mcr.microsoft.com/dotnet/runtime:5.0.4-focal as run
+
+RUN apt-get update
+
+RUN apt-get install -y xvfb
+
+# For Xvfb (X virtual frame buffer, enables in-memory GUI without GUI installed).
+ENV DISPLAY :99
+RUN Xvfb :99
+
+# From https://github.com/SeleniumHQ/docker-selenium/blob/trunk/NodeBase/Dockerfile
+ENV LANG_WHICH en
+ENV LANG_WHERE US
+ENV ENCODING UTF-8
+ENV LANGUAGE ${LANG_WHICH}_${LANG_WHERE}.${ENCODING}
+ENV LANG ${LANGUAGE}
+
+RUN apt-get -qqy update \
+  && apt-get -qqy --no-install-recommends install \
+    libfontconfig \
+    libfreetype6 \
+    xfonts-cyrillic \
+    xfonts-scalable \
+    fonts-liberation \
+    fonts-ipafont-gothic \
+    fonts-wqy-zenhei \
+    fonts-tlwg-loma-otf \
+    ttf-ubuntu-font-family \
+  && rm -rf /var/lib/apt/lists/* \
+  && apt-get -qyy clean
+
+RUN apt-get install -y firefox
+
+RUN mkdir app
+
+WORKDIR /app
+
+COPY --from=build /build/crawler .
+
+ENTRYPOINT [ "dotnet", "PriceFalcon.JobRunner.dll" ]

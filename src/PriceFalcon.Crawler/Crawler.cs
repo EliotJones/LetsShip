@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,7 +68,7 @@ namespace PriceFalcon.Crawler
                     await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Waiting for website at \"{driver.Url}\" to load fully...");
 
                     new WebDriverWait(driver, TimeSpan.FromSeconds(30)).Until(
-                        d => ((IJavaScriptExecutor) d).ExecuteScript("return document.readyState").Equals("complete"));
+                        d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
 
                     cancellationToken.ThrowIfCancellationRequested();
 
@@ -117,7 +118,7 @@ namespace PriceFalcon.Crawler
                         logger.AppendLine($"Waiting for website at \"{driver.Url}\" to load fully...");
 
                         new WebDriverWait(driver, TimeSpan.FromSeconds(30)).Until(
-                            d => ((IJavaScriptExecutor) d).ExecuteScript("return document.readyState").Equals("complete"));
+                            d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
 
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -139,9 +140,11 @@ namespace PriceFalcon.Crawler
 
                         logger.AppendLine("Page fully loaded.");
 
-                        var elements = driver.FindElementsByXPath(xpath);
+                        var elements = driver.FindElementsByXPath(xpath)
+                            .Where(x => !string.IsNullOrWhiteSpace(x.Text))
+                            .ToList();
 
-                        if (elements == null)
+                        if (elements.Count == 0)
                         {
                             return Task.FromResult(
                                 new PriceJobResult
@@ -153,7 +156,7 @@ namespace PriceFalcon.Crawler
 
                         if (elements.Count > 1)
                         {
-                            
+                            logger.AppendLine($"More than one element found by XPath {xpath}, using the first.");
                         }
 
                         var element = elements[0];
@@ -243,7 +246,15 @@ namespace PriceFalcon.Crawler
 
             foreach (var driver in _drivers)
             {
-                driver.Dispose();
+                try
+                {
+                    driver.Close();
+                    driver.Dispose();
+                }
+                catch
+                {
+                    // ignored.
+                }
             }
         }
     }

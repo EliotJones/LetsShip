@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -9,12 +8,40 @@ using PriceFalcon.Infrastructure.DataAccess;
 
 namespace PriceFalcon.App.DraftJobs
 {
-    public class RequestNewJobToken : IRequest<string?>
+    public class RequestNewJobTokenResult
+    {
+        public static readonly RequestNewJobTokenResult NoVerifiedUser = new RequestNewJobTokenResult(StatusReason.NoVerifiedUser);
+        public static readonly RequestNewJobTokenResult TooManyRequests = new RequestNewJobTokenResult(StatusReason.TooManyRequests);
+
+        public string? Token { get; }
+
+        public StatusReason Status { get; }
+
+        public RequestNewJobTokenResult(string token)
+        {
+            Token = token;
+            Status = StatusReason.Created;
+        }
+
+        private RequestNewJobTokenResult(StatusReason status)
+        {
+            Status = status;
+        }
+
+        public enum StatusReason
+        {
+            Created = 1,
+            NoVerifiedUser = 2,
+            TooManyRequests = 3
+        }
+    }
+
+    public class RequestNewJobToken : IRequest<RequestNewJobTokenResult>
     {
         public string Email { get; set; } = string.Empty;
     }
 
-    internal class RequestNewJobTokenHandler : IRequestHandler<RequestNewJobToken, string?>
+    internal class RequestNewJobTokenHandler : IRequestHandler<RequestNewJobToken, RequestNewJobTokenResult>
     {
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
@@ -28,20 +55,25 @@ namespace PriceFalcon.App.DraftJobs
             _emailService = emailService;
         }
 
-        public async Task<string?> Handle(RequestNewJobToken request, CancellationToken cancellationToken)
+        public async Task<RequestNewJobTokenResult> Handle(RequestNewJobToken request, CancellationToken cancellationToken)
         {
             var user = await _userRepository.GetByEmail(request.Email);
 
             if (user == null || !user.IsVerified)
             {
-                return null;
+                return RequestNewJobTokenResult.NoVerifiedUser;
             }
 
             var lastToken = await _tokenService.GetLastToken(user.Id, Token.TokenPurpose.CreateDraftJob);
 
             if (lastToken != null)
             {
-                // todo: expiry check
+                var wasRecent = (DateTime.UtcNow - lastToken.Created).TotalMinutes < 5;
+
+                if (wasRecent)
+                {
+                    return RequestNewJobTokenResult.TooManyRequests;
+                }
             }
 
             var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateDraftJob, DateTime.UtcNow.AddDays(10));
@@ -52,7 +84,7 @@ namespace PriceFalcon.App.DraftJobs
 
             await _emailService.Send(user.Email, "Create a new job", message);
 
-            return token.token;
+            return new RequestNewJobTokenResult(token.token);
         }
     }
 }

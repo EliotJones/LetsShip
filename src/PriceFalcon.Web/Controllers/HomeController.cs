@@ -68,11 +68,21 @@ namespace PriceFalcon.Web.Controllers
                 return RedirectToAction("CheckEmail");
             }
 
-            await _mediator.Send(
+            var newJobTokenResult = await _mediator.Send(
                 new RequestNewJobToken
                 {
                     Email = model.Email!
                 });
+
+            if (newJobTokenResult.Status == RequestNewJobTokenResult.StatusReason.NoVerifiedUser)
+            {
+                return BadRequest("Your account isn't verified yet, check your email for an invite.");
+            }
+
+            if (newJobTokenResult.Status == RequestNewJobTokenResult.StatusReason.TooManyRequests)
+            {
+                return BadRequest("You've sent too many new job requests to this email address in the past few minutes, take a break for a bit.");
+            }
 
             return RedirectToAction("CheckEmailNewJob");
         }
