@@ -60,7 +60,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
             await using var connection = await _connectionProvider.Get();
 
             var results = await connection.QueryAsync<Email>(
-                "SELECT * FROM emails WHERE recipient = @recipient AND @created >= @fromInclusive;",
+                "SELECT * FROM emails WHERE recipient = @recipient AND created >= @fromInclusive;",
                 new { recipient = recipient, fromInclusive = fromInclusive });
 
             return results.ToList();
