@@ -55,3 +55,5 @@ COPY --from=build /build/crawler .
 CMD /app/run-xvfb.sh
 
 ENTRYPOINT [ "dotnet", "PriceFalcon.JobRunner.dll" ]
+
+# docker run --rm -it -e ConnectionStrings__Default="Server=host.docker.internal;Port=5432;Database=pricefalcon;User Id=devwrite;Password=xE:UZj4buVy2&&3n;" -e DOTNET_ENVIRONMENT="Development" crawler

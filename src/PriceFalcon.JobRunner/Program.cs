@@ -25,30 +25,26 @@ namespace PriceFalcon.JobRunner
 
                     services.AddSingleton<PriceFalconConfig>();
 
-                    var isDev = hostContext.HostingEnvironment.IsDevelopment();
-
                     string geckoPath;
-                    if (isDev)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                        {
-                            geckoPath = Path.Combine(hostContext.HostingEnvironment.ContentRootPath, "Drivers", "Windows", "geckodriver.exe");
-                        }
-                        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                        {
-                            geckoPath = Path.Combine(hostContext.HostingEnvironment.ContentRootPath, "Drivers", "Linux", "geckodriver");
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException("JobCrawler is not support on your operating system, use Windows or Linux.");
-                        }
+                        geckoPath = Path.Combine(hostContext.HostingEnvironment.ContentRootPath, "Drivers", "Windows", "geckodriver.exe");
                     }
-                    else
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        geckoPath = Path.Combine(hostContext.HostingEnvironment.ContentRootPath, "Drivers", "Linux", "geckodriver");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(config.GeckoDriverPath))
                     {
                         geckoPath = config.GeckoDriverPath;
                     }
+                    else
+                    {
+                        throw new InvalidOperationException("JobCrawler is not support on your operating system, use Windows or Linux.");
+                    }
 
-                    services.AddSingleton<ICrawler>(new FirefoxCrawler(geckoPath, 1, !isDev));
+                    var isDev = hostContext.HostingEnvironment.IsDevelopment();
+                    services.AddSingleton<ICrawler>(new FirefoxCrawler(geckoPath, isDev ? 1 : 3, isDev));
 
                     Bootstrapper.Start(services, hostContext.Configuration);
                     services.AddHostedService<Worker>();
