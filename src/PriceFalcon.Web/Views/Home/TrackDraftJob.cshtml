@@ -1,37 +1,38 @@
 ﻿@model PriceFalcon.Web.ViewModels.Home.TrackDraftJobViewModel
 
 <div id="track-container">
-    <div class="row">
-        <div class="col-1"></div>
-        <div class="col-3">
+    <div class="row progress-row">
+        <div class="two columns offset-by-one progress-icon">
             <object type="image/svg+xml" class="track-status-icon" data="/images/star.svg" width="32"></object>
         </div>
-        <div class="col-7">
+        <div class="eight columns">
             Job to crawl website (@Model.Website) was created.
         </div>
     </div>
     <div id="track-items-holder">
-        <div class="row">
-            <div class="col-1"></div>
-            <div class="col-3">
-                <div class="lds-dual-ring"></div>
-            </div>
-            <div class="col-7">
-                Your job will be picked up and processed by the next available worker.
-            </div>
+    </div>
+    <div class="row progress-row" id="next-running">
+        <div class="two columns offset-by-one progress-icon">
+            <div class="lds-dual-ring"></div>
+        </div>
+        <div class="eight columns" id="next-running-text">
+            Your job will be picked up and processed by the next available worker.
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script type="text/javascript">
+        var recorded = [];
+        var updatedLoadingText = false;
+
         function imageFor(link) {
             return "<object type='image/svg+xml' class='track-status-icon' data='" + link + "' width='32'></object>";
         }
 
         function displayForStatusItem(item) {
             var img = "";
-            if (item.status === 2) {
+            if (item.status === 1 || item.status === 2) {
                 img = imageFor("/images/clock.svg");
             } else if (item.status === 3) {
                 img = imageFor("/images/cloud-download.svg");
@@ -39,9 +40,9 @@
                 img = imageFor("/images/circle-check.svg");
             }
 
-            var status = "<div class='col-3'>" + img + "</div>";
-            var message = "<div class='col-7'>" + item.message + "</div>";
-            return "<div class='row'><div class='col-1'></div>" + status + message + "</div>";
+            var status = "<div class='two columns offset-by-one progress-icon'>" + img + "</div>";
+            var message = "<div class='eight columns'>" + item.message + "</div>";
+            return "<div class='row progress-row'>" + status + message + "</div>";
         }
 
         function onTrackLoaded(data) {
@@ -49,20 +50,25 @@
             var failed = data.find(x => x.status === 5);
             if (!!completed || !!failed) {
                 clearInterval(document.price_falcon_timer);
+                $("#next-running").remove();
             }
 
-            var str = data.map(displayForStatusItem).join('');
-
-            if (!completed && !failed) {
-                str += "<div class='row'><div class='col-1'></div><div class='col-3'><div class='lds-dual-ring'></div></div>";
-                str += "<div class='col-7'>Still processing.</div></div>";
+            if (!updatedLoadingText) {
+                var hasQueuedOrProcessing = !!data.find(x => x.status === 2 || x.status === 3);
+                if (hasQueuedOrProcessing) {
+                    $("#next-running-text").text('Your job is being processed.');
+                }
             }
+
+            var str = data.filter(x => !recorded.find(r => r === x.message)).map(displayForStatusItem).join('');
+
+            recorded = data.map(x => x.message);
+
+            $("#track-items-holder").append(str);
 
             if (!!completed) {
-                str += "<a href='@Url.Action("SelectDraftJobItem", new { token = Model.Token })'>Next step</a>";
+                $("#track-container").after("<a href='@Url.Action("SelectDraftJobItem", new {token = Model.Token})' id='next-step-link'>Next step</a>");
             }
-
-            $("#track-items-holder").html(str);
         }
 
         $(function() {

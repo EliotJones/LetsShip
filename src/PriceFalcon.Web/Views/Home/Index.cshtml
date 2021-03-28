@@ -1,22 +1,48 @@
 ﻿@model PriceFalcon.Web.ViewModels.Home.IndexViewModel
-
-<div class="row" style="margin-top: 40vh">
-    <div class="col-lg-2"></div>
-    <div class="col-lg-8">
-        <form asp-action="Start">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label style="display: none" asp-for="Email" class="control-label"></label>
-                <input asp-for="Email" type="email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Start" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
-
-@section Scripts {
-@{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+@{
+    Layout = "_RootLayout";
 }
+
+<div class="container">
+        <main role="main" class="pb-3">
+            <div style="height: 95vh; display: flex; align-items: center">
+                <div style="width: 100%">
+                    <div class="row">
+                        <div class="ten columns offset-by-one">
+                            <div style="display: flex; justify-items: center; text-align: center">
+                                <div style="width: 100%">
+                                    <h1 style="margin-bottom: 10px; font-size: 7.5rem; font-weight: bold;"><span style="font-family: 'Courgette'; font-weight: bolder">Price</span>Falcon</h1>
+                                    <p class="lede">Monitor prices for any website and receive price change alerts.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="ten columns offset-by-one">
+                            <form asp-action="Start">
+                                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                                <div class="form-group">
+                                    <label style="display: none" asp-for="Email" class="control-label"></label>
+                                    <input id="front-page-email" asp-for="Email"
+                                           type="email"
+                                           placeholder="Your email address"
+                                           required="required"
+                                           class="u-full-width"
+                                           title="We use this to send you price alerts and verification codes, we don't spam you" />
+                                    <span asp-validation-for="Email"></span>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="button-primary u-pull-right">Register</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    @section Scripts {
+        @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    }

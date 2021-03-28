@@ -16,4 +16,8 @@
     <ProjectReference Include="..\PriceFalcon.Infrastructure\PriceFalcon.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\js\" />
+  </ItemGroup>
+
 </Project>

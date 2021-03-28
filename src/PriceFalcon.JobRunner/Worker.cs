@@ -148,11 +148,13 @@ namespace PriceFalcon.JobRunner
                 if (jobLock.Status != JobStatus.Active)
                 {
                     jobLock.Abandon();
+                    return;
                 }
 
                 if (jobLock.Due > DateTime.UtcNow)
                 {
                     jobLock.Abandon();
+                    return;
                 }
 
                 try

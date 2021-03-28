@@ -1,0 +1,23 @@
+﻿@{
+    Layout = "_RootLayout";
+}
+
+<nav>
+    <div class="logo-section">
+        <a href="/">
+            <span>Price</span>Falcon
+        </a>
+    </div>
+    <div class="page-details">
+        @await RenderSectionAsync("NavContent", false)
+    </div>
+</nav>
+<div class="container">
+    <main role="main" style="padding-top: 16px">
+        @RenderBody()
+    </main>
+</div>
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", false);
+}
