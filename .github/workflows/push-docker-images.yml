@@ -30,6 +30,7 @@ jobs:
 
       - name: Build web image
         run: docker build -f ./docker/web/Dockerfile.yml -t $WEB_IMAGE_NAME .
+        working-directory: .
 
       - name: Build crawler image
         run: docker build -f docker/crawler/Dockerfile.yml -t $CRAWL_IMAGE_NAME .
