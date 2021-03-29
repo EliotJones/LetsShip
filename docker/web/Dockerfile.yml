@@ -33,7 +33,7 @@ ENV ASPNETCORE_URLS=http://+:6110 \
 
 EXPOSE 6110
 
-ENTRYPOINT [ "dotnet", "PriceFalcon.Web.dll" ]
+ENTRYPOINT [ "./PriceFalcon.Web" ]
 
 # If I want to run it up locally for testing (Docker for Windows or Mac)
 # docker run --rm -it -p 6110:6110 -e ConnectionStrings__Default="Server=host.docker.internal;Port=5432;Database=pricefalcon;User Id=devwrite;Password=xE:UZj4buVy2&&3n;" -e ASPNETCORE_ENVIRONMENT="Development" -e PRICE_FALCON_SENDGRID="SG.fakeapikey" --entrypoint /bin/ash falconweb
