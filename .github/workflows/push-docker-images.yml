@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build web image
-        run: docker build -f ./docker/web/Dockerfile.yml -t $WEB_IMAGE_NAME .
+        run: pwd && docker build -f docker/web/Dockerfile.yml -t $WEB_IMAGE_NAME .
         working-directory: .
 
       - name: Build crawler image
