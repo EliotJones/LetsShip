@@ -5,7 +5,7 @@ RUN mkdir build
 
 WORKDIR /build
 
-COPY ../../src .
+COPY src .
 
 RUN mkdir web
 
