@@ -52,6 +52,22 @@ namespace PriceFalcon.Crawler.Tests
 
         [Fact]
         [Trait("Category", "Integration-Selenium")]
+        public async Task GetPageSource_ArgosWithCookieBanner_AcceptsCookies()
+        {
+            using var crawler = GetCrawler(1);
+
+            if (crawler == null)
+            {
+                return;
+            }
+
+            var source = await crawler.GetPageSource(new Uri("https://www.argos.co.uk/product/6205524"), _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.NotNull(source);
+        }
+
+        [Fact]
+        [Trait("Category", "Integration-Selenium")]
         public async Task GetPageSource_InParallel_GetsHtml()
         {
             using var crawler = GetCrawler(2);

@@ -129,3 +129,72 @@ nav {
     box-sizing: border-box;
     margin-top: 12px;
 }
+.wrapper-select-layout {
+}
+
+.body-container-select-layout {
+    top: 66px;
+    bottom: 0;
+    width: 100%;
+    position: absolute;
+    overflow-x: hidden;
+}
+
+.select-iframe-container {
+    height: 90%;
+    width: 100%;
+}
+
+.select-info-bar {
+    height: 10%;
+    width: 100%;
+    background: #e1e1e1;
+    display: flex;
+}
+
+.select-info-bar > form {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    justify-content: space-between;
+    padding: 0 16px;
+}
+
+.button-primary.disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    border: transparent;
+}
+
+.button-primary.disabled:hover {
+    background: #bdc3c7;
+}
+
+#selected-value-container {
+    display: flex;
+    align-items: center;
+}
+
+#selected-value-container-inner {
+    display: flex;
+    margin-left: 16px;
+}
+
+#selected-value-container-inner > div > span {
+    font-weight: bold;
+    margin-right: 6px;
+}
+
+#selected-value-container-inner > div {
+    background: white;
+    border-radius: 3px;
+    border: 1px solid #bdc3c7;
+    padding: 16px;
+}
+
+.alert-danger {
+    border: 2px solid #e74c3c;
+    color: #e74c3c;
+}

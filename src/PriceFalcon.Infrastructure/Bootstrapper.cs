@@ -14,6 +14,7 @@ namespace PriceFalcon.Infrastructure
             serviceCollection.AddSingleton<IConnectionProvider>(
                 ctx => new DefaultConnectionProvider(configuration.GetConnectionString("Default")));
 
+            serviceCollection.AddSingleton<IDataProtectionKeyRepository, DataProtectionKeyRepository>();
             serviceCollection.AddSingleton<IDraftJobRepository, DraftJobRepository>();
             serviceCollection.AddSingleton<IEmailRepository, EmailRepository>();
             serviceCollection.AddSingleton<IJobRepository, JobRepository>();

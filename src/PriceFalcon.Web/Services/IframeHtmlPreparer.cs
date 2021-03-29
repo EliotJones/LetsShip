@@ -71,6 +71,18 @@ namespace PriceFalcon.Web.Services
                 attr?.Remove();
             }
 
+            var buttons = doc.DocumentNode.SelectNodes("//button");
+
+            foreach (var button in buttons)
+            {
+                var typeAttr = button.Attributes["type"];
+
+                if (typeAttr != null)
+                {
+                    typeAttr.Value = "button";
+                }
+            }
+
             const string jqueryScript =
                 @"<script src=""https://code.jquery.com/jquery-3.6.0.slim.min.js"" integrity=""sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI="" crossorigin=""anonymous""></script>";
 
@@ -110,7 +122,7 @@ namespace PriceFalcon.Web.Services
                             tag: tag,
                             id: id,
                             classes: classes,
-                            name: item.getAttribute('name')
+                            name: $(item).attr('name')
                         });
                     }
 

@@ -47,7 +47,7 @@ namespace PriceFalcon.App.DraftJobs
                 return new DraftJobSelectionValidationResponse
                 {
                     IsValid = false,
-                    Reason = "No job exists with a matching token"
+                    Reason = "No job exists with a matching token, this means your link is invalid."
                 };
             }
 
@@ -74,12 +74,13 @@ namespace PriceFalcon.App.DraftJobs
                 return new DraftJobSelectionValidationResponse
                 {
                     IsValid = false,
-                    Reason = "No element was selected"
+                    Reason = "No element was selected."
                 };
             }
 
             if (!PriceCrawlValidator.TryGetPrice(request.Selection.Text, out var price))
             {
+                var displayText = request.Selection.Text.Length > 39 ? request.Selection.Text.Substring(0, 39) + "..." : request.Selection.Text;
                 return new DraftJobSelectionValidationResponse
                 {
                     IsValid = false,
@@ -93,7 +94,7 @@ namespace PriceFalcon.App.DraftJobs
                 {
                     Price = price,
                     IsValid = false,
-                    Reason = "Could not uniquely locate the element to track, sorry for the inconvenienc."
+                    Reason = "Could not uniquely locate the element to track, sorry for the inconvenience."
                 };
             }
 

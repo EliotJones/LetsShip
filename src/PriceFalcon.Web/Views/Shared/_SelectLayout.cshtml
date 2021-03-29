@@ -2,7 +2,21 @@
     Layout = "_RootLayout";
 }
 
-@RenderBody()
+<div class="wrapper-select-layout">
+    <nav>
+        <div class="logo-section">
+            <a href="/">
+                <span>Price</span>Falcon
+            </a>
+        </div>
+        <div class="page-details">
+            @await RenderSectionAsync("NavContent", false)
+        </div>
+    </nav>
+    <div class="body-container-select-layout">
+        @RenderBody()
+    </div>
+</div>
 
 @section Scripts {
     @await RenderSectionAsync("Scripts", false)

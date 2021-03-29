@@ -10,8 +10,6 @@ namespace PriceFalcon.Domain
 
         public Uri Url { get; set; } = new Uri("about:empty");
 
-        public string CrawledHtml { get; set; } = string.Empty;
-
         public int UserId { get; set; }
 
         public string Selector { get; set; } = string.Empty;

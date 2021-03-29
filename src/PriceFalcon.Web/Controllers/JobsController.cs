@@ -59,7 +59,13 @@ namespace PriceFalcon.Web.Controllers
                 return BadRequest("Selection not found.");
             }
 
-            return RedirectToAction("Index", new {token = result.Token});
+            return RedirectToAction("Created", new {token = result.Token});
+        }
+
+        [HttpGet("created/{token}")]
+        public IActionResult Created(string token)
+        {
+            return View();
         }
 
         [Route("{token}")]

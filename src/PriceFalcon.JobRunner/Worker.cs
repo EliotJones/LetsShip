@@ -36,10 +36,13 @@ namespace PriceFalcon.JobRunner
 
                 var pending = await _draftJobRepository.GetJobsInStatus(DraftJobStatus.Pending);
 
+                _logger.LogInformation($"{pending.Count} pending draft jobs found.");
+
                 foreach (var draftJob in pending)
                 {
                     if (_running.Count >= 5)
                     {
+                        _logger.LogError($"Too many running tasks were found {_running.Count}, skipping pending draft jobs.");
                         continue;
                     }
 
@@ -56,10 +59,13 @@ namespace PriceFalcon.JobRunner
 
                 var pendingJobs = await _jobRepository.GetJobsDue();
 
+                _logger.LogInformation($"{pending.Count} pending jobs found.");
+
                 foreach (var job in pendingJobs)
                 {
                     if (_running.Count >= 5)
                     {
+                        _logger.LogError($"Too many running tasks were found {_running.Count}, skipping pending jobs.");
                         continue;
                     }
 
@@ -98,6 +104,8 @@ namespace PriceFalcon.JobRunner
         {
             try
             {
+                _logger.LogInformation($"Trying to acquire lock for draft job {job.Id}.");
+
                 using var jobLock = await _draftJobRepository.AcquireJobLock(job.Id, token);
 
                 if (jobLock.Status != DraftJobStatus.Pending)
@@ -105,6 +113,8 @@ namespace PriceFalcon.JobRunner
                     jobLock.Abandon();
                     return;
                 }
+
+                _logger.LogInformation($"Acquired lock, beginning draft job {job.Id}.");
 
                 await jobLock.Log("Job is queued, it will run soon.", DraftJobStatus.Queued);
 
@@ -143,6 +153,8 @@ namespace PriceFalcon.JobRunner
         {
             try
             {
+                _logger.LogInformation($"Trying to acquire lock for job {job.Id}.");
+
                 using var jobLock = await _jobRepository.AcquireJobLock(job.Id, token);
 
                 if (jobLock.Status != JobStatus.Active)
@@ -153,9 +165,14 @@ namespace PriceFalcon.JobRunner
 
                 if (jobLock.Due > DateTime.UtcNow)
                 {
+                    _logger.LogInformation($"Acquired lock but job {job.Id} not due yet. Next due: {jobLock.Due}.");
+
                     jobLock.Abandon();
+
                     return;
                 }
+
+                _logger.LogInformation($"Acquired lock, beginning job {job.Id}.");
 
                 try
                 {
@@ -164,14 +181,20 @@ namespace PriceFalcon.JobRunner
                         PropertyNameCaseInsensitive = true
                     });
 
+                    _logger.LogInformation($"Running selector {job.Xpath} for {job.Url} for job {job.Id}.");
+
                     var result = await _crawler.GetPrice(job.Url, selector, job.Xpath, token);
 
                     if (result.IsSuccess && result.Price.HasValue)
                     {
+                        _logger.LogInformation($"Job completed successfully and found price {result.Price.Value} for job {job.Id}.");
+
                         await jobLock.Complete(result.Price.Value, result.Log);
                     }
                     else
                     {
+                        _logger.LogWarning($"Job failed. Job was {job.Id}.");
+
                         await jobLock.CompleteWithError(result.Log);
                     }
                 }

@@ -1,9 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using PriceFalcon.Crawler;
 using PriceFalcon.Infrastructure;
 
@@ -48,6 +51,15 @@ namespace PriceFalcon.JobRunner
 
                     Bootstrapper.Start(services, hostContext.Configuration);
                     services.AddHostedService<Worker>();
+
+                    services.AddLogging(
+                        lb => lb.AddSimpleConsole(
+                            sc =>
+                            {
+                                sc.ColorBehavior = Debugger.IsAttached ? LoggerColorBehavior.Enabled : LoggerColorBehavior.Disabled;
+                                sc.UseUtcTimestamp = true;
+                                sc.TimestampFormat = "[hh:mm:ss] ";
+                            }));
                 });
     }
 }

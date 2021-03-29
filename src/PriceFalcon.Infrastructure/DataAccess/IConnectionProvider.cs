@@ -7,6 +7,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
     internal interface IConnectionProvider
     {
         Task<DbConnection> Get();
+
+        DbConnection GetSync();
     }
 
     internal class DefaultConnectionProvider : IConnectionProvider
@@ -29,6 +31,13 @@ namespace PriceFalcon.Infrastructure.DataAccess
         {
             var connection = new Npgsql.NpgsqlConnection(_connectionString);
             await connection.OpenAsync();
+            return connection;
+        }
+
+        public DbConnection GetSync()
+        {
+            var connection = new Npgsql.NpgsqlConnection(_connectionString);
+            connection.Open();
             return connection;
         }
     }

@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
+using OpenQA.Selenium.Remote;
 using OpenQA.Selenium.Support.UI;
 using PriceFalcon.Domain;
 
@@ -31,10 +32,17 @@ namespace PriceFalcon.Crawler
 
     public class FirefoxCrawler : ICrawler
     {
+        private static readonly IReadOnlyList<string> CookieTexts = new[]
+        {
+            "Accept all",
+            "Accept cookies",
+            "Accept all cookies"
+        };
+
         private readonly string _geckoDriverPath;
         private readonly bool _isHeadless;
         private readonly SemaphoreSlim _semaphore;
-        private readonly Stack<FirefoxDriver> _drivers;
+        private readonly Stack<RemoteWebDriver> _drivers;
 
         public FirefoxCrawler(string geckoDriverPath, int maxTasks, bool isHeadless)
         {
@@ -49,7 +57,7 @@ namespace PriceFalcon.Crawler
             _geckoDriverPath = actualPath;
             _isHeadless = isHeadless;
             _semaphore = new SemaphoreSlim(maxTasks, maxTasks);
-            _drivers = new Stack<FirefoxDriver>(maxTasks);
+            _drivers = new Stack<RemoteWebDriver>(maxTasks);
         }
 
         public async Task<string> GetPageSource(Uri website, Func<string, Task> asyncLogger, CancellationToken cancellationToken)
@@ -59,35 +67,7 @@ namespace PriceFalcon.Crawler
                 {
                     var stopwatch = Stopwatch.StartNew();
 
-                    await asyncLogger($"About to load: {website}");
-
-                    driver.Navigate().GoToUrl(website);
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Waiting for website at \"{driver.Url}\" to load fully...");
-
-                    new WebDriverWait(driver, TimeSpan.FromSeconds(30)).Until(
-                        d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    var isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
-
-                    if (!isSameUrl)
-                    {
-                        driver.Navigate().GoToUrl(website);
-
-                        isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
-
-                        if (!isSameUrl)
-                        {
-                            await asyncLogger(
-                                $"Loaded URL did not match the one you provided. We loaded: {driver.Url}. It's possible the target site's location detection kicked in and chose the wrong region.");
-                        }
-                    }
-
-                    await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Page fully loaded.");
+                    await LoadPage(driver, website, stopwatch, asyncLogger, cancellationToken);
 
                     var html = driver.PageSource;
 
@@ -103,42 +83,23 @@ namespace PriceFalcon.Crawler
         public async Task<PriceJobResult> GetPrice(Uri website, HtmlElementSelection selection, string xpath, CancellationToken cancellationToken)
         {
             var result = await GetDriverAndRun(
-                driver =>
+                async driver =>
                 {
                     var logger = new StringBuilder();
                     try
                     {
+                        var stopwatch = Stopwatch.StartNew();
 
-                        logger.AppendLine($"About to load: {website}");
-
-                        driver.Navigate().GoToUrl(website);
-
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        logger.AppendLine($"Waiting for website at \"{driver.Url}\" to load fully...");
-
-                        new WebDriverWait(driver, TimeSpan.FromSeconds(30)).Until(
-                            d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
-
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        var isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
-
-                        if (!isSameUrl)
-                        {
-                            driver.Navigate().GoToUrl(website);
-
-                            cancellationToken.ThrowIfCancellationRequested();
-
-                            isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
-
-                            if (!isSameUrl)
+                        await LoadPage(
+                            driver,
+                            website,
+                            stopwatch,
+                            s =>
                             {
-                                logger.AppendLine($"Loaded URL did not match the one you provided. We loaded: {driver.Url}.");
-                            }
-                        }
-
-                        logger.AppendLine("Page fully loaded.");
+                                logger.AppendLine(s);
+                                return Task.CompletedTask;
+                            },
+                            cancellationToken);
 
                         var elements = driver.FindElementsByXPath(xpath)
                             .Where(x => !string.IsNullOrWhiteSpace(x.Text))
@@ -146,12 +107,11 @@ namespace PriceFalcon.Crawler
 
                         if (elements.Count == 0)
                         {
-                            return Task.FromResult(
-                                new PriceJobResult
-                                {
-                                    Log = logger.AppendLine($"Could not find the element by XPath: {xpath}.").ToString(),
-                                    IsSuccess = false
-                                });
+                            return new PriceJobResult
+                            {
+                                Log = logger.AppendLine($"Could not find the element by XPath: {xpath}.").ToString(),
+                                IsSuccess = false
+                            };
                         }
 
                         if (elements.Count > 1)
@@ -163,32 +123,29 @@ namespace PriceFalcon.Crawler
 
                         if (!PriceCrawlValidator.TryGetPrice(element.Text, out var price))
                         {
-                            return Task.FromResult(
-                                new PriceJobResult
-                                {
-                                    Log = logger.AppendLine($"Could not find the price in the element with text: {element.Text}.").ToString(),
-                                    IsSuccess = false
-                                });
+                            return new PriceJobResult
+                            {
+                                Log = logger.AppendLine($"Could not find the price in the element with text: {element.Text}.").ToString(),
+                                IsSuccess = false
+                            };
                         }
 
-                        return Task.FromResult(
-                            new PriceJobResult
-                            {
-                                Log = logger.ToString(),
-                                IsSuccess = true,
-                                Price = price
-                            });
+                        return new PriceJobResult
+                        {
+                            Log = logger.ToString(),
+                            IsSuccess = true,
+                            Price = price
+                        };
                     }
                     catch (Exception ex)
                     {
                         logger.AppendLine($"Error encountered: {ex}.");
 
-                        return Task.FromResult(
-                            new PriceJobResult
-                            {
-                                Log = logger.ToString(),
-                                IsSuccess = false
-                            });
+                        return new PriceJobResult
+                        {
+                            Log = logger.ToString(),
+                            IsSuccess = false
+                        };
                     }
                 },
                 cancellationToken);
@@ -196,7 +153,70 @@ namespace PriceFalcon.Crawler
             return result;
         }
 
-        private async Task<T> GetDriverAndRun<T>(Func<FirefoxDriver, Task<T>> task, CancellationToken cancellationToken)
+        private static async Task LoadPage(RemoteWebDriver driver, Uri website, Stopwatch stopwatch, Func<string, Task> asyncLogger,
+            CancellationToken cancellationToken)
+        {
+            await asyncLogger($"About to load: {website}");
+
+            driver.Navigate().GoToUrl(website);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Waiting for website at \"{driver.Url}\" to load fully...");
+
+            new WebDriverWait(driver, TimeSpan.FromSeconds(30)).Until(
+                d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
+
+            if (!isSameUrl)
+            {
+                driver.Navigate().GoToUrl(website);
+
+                isSameUrl = string.Equals(driver.Url, website.ToString(), StringComparison.OrdinalIgnoreCase);
+
+                if (!isSameUrl)
+                {
+                    await asyncLogger(
+                        $"Loaded URL did not match the one you provided. We loaded: {driver.Url}.");
+                }
+            }
+
+            await asyncLogger($"[{Math.Round(stopwatch.Elapsed.TotalSeconds, 2)} s] Page fully loaded.");
+
+            foreach (var cookieText in CookieTexts)
+            {
+                var textContainsXpath = $"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'),'{cookieText.ToLowerInvariant()}')]";
+                var elements = driver.FindElementsByXPath(textContainsXpath);
+
+                foreach (var element in elements)
+                {
+                    if (!element.Displayed)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        await asyncLogger($"Accepting cookies using element with text: {element.Text}.");
+                        element.Click();
+                    }
+                    catch
+                    {
+                        // Ignored.
+                    }
+                }
+
+                if (elements.Count > 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        private async Task<T> GetDriverAndRun<T>(Func<RemoteWebDriver, Task<T>> task, CancellationToken cancellationToken)
         {
             await _semaphore.WaitAsync(cancellationToken);
 

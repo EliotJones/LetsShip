@@ -59,7 +59,6 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 (
                     draft_job_id, 
                     url,
-                    crawled_html,
                     user_id,
                     selector,
                     next_due_date,
@@ -71,7 +70,6 @@ namespace PriceFalcon.Infrastructure.DataAccess
                 )
                 SELECT  dj.id,
                         dj.url,
-                        dj.crawled_html,
                         dj.user_id,
                         CAST(@selector as json),
                         @nextDue,

@@ -3,27 +3,25 @@
     Layout = "_SelectLayout";
 }
 
-<div class="row" style="height: 95vh">
-    <div class="col-8">
-        <iframe src="@Url.Action("GetIframeContent", new { token=Model.Token })" id="select-iframe-container" style="width: 100%; height: 100%;"></iframe>
-    </div>
-    <div class="col-4" style="padding: 10px;">
-        <form asp-action="Create" asp-controller="Jobs">
-            <input asp-for="SelectionJson" type="text" style="display: none" id="json-payload" />
-            <input asp-for="Token" type="text" style="display: none" />
-            <h5>Select the price to monitor</h5>
-            <div id="selected-value-container">
-                <div class="row">
-                    <div class="col-4">Text:</div>
-                    <div class="col-8" id="selected-text-display"></div>
-                </div>
+<div class="select-iframe-container">
+    <iframe src="@Url.Action("GetIframeContent", new { token=Model.Token })" id="select-iframe-container" style="width: 100%; height: 100%;"></iframe>
+</div>
+<div class="select-info-bar">
+    <form asp-action="Create" asp-controller="Jobs">
+        <div>
+            <input asp-for="SelectionJson" type="hidden" style="display: none" id="json-payload" />
+            <input asp-for="Token" type="hidden" style="display: none" />
+            <h5 id="tutorial" style="font-family: 'Courgette', sans-serif; font-weight: bold; margin: 0;">Click in the web page to select the price to monitor</h5>
+            <div id="selected-value-container" style="display: none;">
+                <div style="font-weight: bold; margin-right: 6px;">Selected Text:</div>
+                <div id="selected-text-display"></div>
                 <div id="selected-value-container-inner">
 
                 </div>
             </div>
-            <button id="save-button" class="btn btn-outline-light disabled" disabled="disabled">Save</button>
-        </form>
-    </div>
+        </div>
+        <button id="save-button" class="button-primary u-pull-right disabled" style="margin-bottom: 0" title="Create a new price watch job" disabled="disabled">Watch</button>
+    </form>
 </div>
 
 @section Scripts {
@@ -32,21 +30,24 @@
             console.log('server checked the selection and responded with', data);
             if (data.isValid) {
                 $("#save-button").prop('disabled', '');
-                $("#save-button").prop('class', 'btn btn-success');
-                $('#selected-value-container-inner').html("<div class='row'><div class='col-4'>Current price:</div><div class='col-8'>" + data.price.toFixed(2) + "</div></div>");
+                $("#save-button").prop('class', 'button-primary');
+                $('#selected-value-container-inner').html("<div><span>Monitor price:</span>" + data.price.toFixed(2) + "</div>");
 
             } else {
                 $("#save-button").prop('disabled', 'disabled');
-                $("#save-button").prop('class', 'btn btn-outline-light disabled');
+                $("#save-button").prop('class', 'button-primary disabled');
                 $('#selected-value-container-inner').html("<div class='alert alert-danger' role='alert'>" + data.reason + "</div>");
             }
         }
 
         function onMessageReceived(msgEvent) {
+            $("#tutorial").remove();
+            $("#selected-value-container").show();
             $("#json-payload").val(msgEvent.data);
 
             var item = JSON.parse(msgEvent.data);
-            $("#selected-text-display").text(item.text);
+            var txt = item.text.length > 39 ? item.text.substr(0, 39) + '...' : item.text;
+            $("#selected-text-display").text(txt);
             $.post('@Url.Action("CalculateSelectValidity", new {token = Model.Token})',
                 item,
                 function(data) {
