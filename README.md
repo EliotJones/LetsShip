@@ -1,4 +1,4 @@
-# Let's Ship - PriceFalcon #
+# Let's Ship - PriceFalcon
 
 The aim of this repository is to share the experience of developing and shipping a working .NET 5 application including deployments, dev-ops, migrations, etc.
 
@@ -10,11 +10,11 @@ The motivation here is to build and deloy a non-trivial site running in .NET 5. 
 
 We'll be deploying our application using a single node kubernetes cluster. I used to believe this was overengineering and kubernetes was a fad. But using k8s in a single node cluster gives up a couple of advantages that make it worth the up-front investment even for an MVP.
 
-+ Zero downtime deployments using rolling updates. I've done enough weekend and evening deployments in my life. Our field (software) has a seriously unhealthy attitude to working hours. I should be able to push out a deployment in working hours and go home to do what I care about, not have to wait until outside working hours to make updates. If your engineers can't leave the office at 5pm you're doing something wrong.
-+ Reproducible environments using docker. This isn't unique to k8s and there are other ways to deploy docker images but by containerising your application even with a single instance you ensure that you can test the same environment that runs in production. Fewer nasty surprises related to environment differences.
-+ Load balancing and room to grow. Your site idea is going to fail, 99% of the time. But if not this set-up should give you a solid foundation for the first 2 years.
+- Zero downtime deployments using rolling updates. I've done enough weekend and evening deployments in my life. Our field (software) has a seriously unhealthy attitude to working hours. I should be able to push out a deployment in working hours and go home to do what I care about, not have to wait until outside working hours to make updates. If your engineers can't leave the office at 5pm you're doing something wrong.
+- Reproducible environments using docker. This isn't unique to k8s and there are other ways to deploy docker images but by containerising your application even with a single instance you ensure that you can test the same environment that runs in production. Fewer nasty surprises related to environment differences.
+- Load balancing and room to grow. Your site idea is going to fail, 99% of the time. But if not this set-up should give you a solid foundation for the first 2 years.
 
-## Step 1 (you say we need to talk) ##
+## Step 1 (you say we need to talk)
 
 First, find out what version of .NET we're running, from the command line run:
 
@@ -81,13 +81,13 @@ dotnet new sln -n PriceFalcon
 
 To create an empty Solution file. It won't be linked to our web project yet though. First you'll need to install Visual Studio 2019 if you don't already have it, so we'll take a break here and commit the code so far.
 
-## Step 2 ##
+## Step 2
 
 You are now the proud owner of 1 Visual Studio 2019, congratulations. Double click the `PriceFalcon.sln` solution we created and Visual Studio 2019 should launch.
 
 If you expand Solution Explorer you should see and empty Solution. If you right click it and select `Add > Existing Project...` then we can browse for the project (`.csproj`) file for the web project.
 
-[IMG001][IMG002][IMG003]
+[IMG001][img002][IMG003]
 
 We now have a minimal solution and web project set-up.
 
@@ -106,7 +106,7 @@ We also need a directory for the data our container uses to be persisted (`data`
 ```
 cd db
 mkdir data
-mkdir init 
+mkdir init
 ```
 
 Inside the `db/init` folder I created a new file `init.sql` with the following content to create a new user for our development purposes. This will be run when our postgres container starts up:
@@ -139,7 +139,7 @@ services:
 volumes:
   data:
   init:
-  
+
 ```
 
 This creates a new postgres database docker image with the superuser username/password of root/root. The database name is `pricefalcon`, the database is available on port `5432` (postgres default). It also mounts the `data` folder so our database is persistent between restarts (automatic restart of the container enabled by `restart: always`). Lastly it mounts the `init` folder to the default folder used to run scripts when the container starts.
@@ -248,7 +248,7 @@ You can connect to our newly created database with the following settings:
 
 Now we've got the first part of our infrastructure and project set-up, let's commit and take a break.
 
-## Step 3 ##
+## Step 3
 
 Now we're going to start building out some features of our application to make it a little interesting.
 
@@ -257,7 +257,7 @@ First we need an email validation step since we don't want people spamming us wi
 Then we want to accept the URL for crawl and have a test page to ensure the crawl is configured correctly. Finally we need the ability for the user to delete those crawls
 and a background task to run the actual crawling on an interval.
 
-### Architecture ###
+### Architecture
 
 Generally for any application you want to keep the logic in the hosting application as small as possible so that you can easily switch the hosting application between, for example, an API, a desktop app, a mobile app, an API, etc. For this purpose and others CQRS using Mediatr is generally an unbeatable pattern, unless you have very specific requirements.
 
@@ -267,10 +267,10 @@ The 2 main options for data access are Entity Framework Core and Dapper. Since I
 
 We will use the following 4 projects for the web application part of our project:
 
-+ PriceFalcon.Web - The MVC host application, should contain very little logic, it simply exposes our endpoints, displays the UI and forms the composition root for the web application.
-+ PriceFalcon.App - The meat of the application logic. The requests and handlers live in here and are responsible for all our business logic (unrelated to the actual web crawling).
-+ PriceFalcon.Domain - The core classes with no logic for things like users, tokens, jobs, etc.
-+ PriceFalcon.Infrastructure - Interact with external services such as the database, email sending, metrics etc. Only interfaces are publically exposed to the other projects.
+- PriceFalcon.Web - The MVC host application, should contain very little logic, it simply exposes our endpoints, displays the UI and forms the composition root for the web application.
+- PriceFalcon.App - The meat of the application logic. The requests and handlers live in here and are responsible for all our business logic (unrelated to the actual web crawling).
+- PriceFalcon.Domain - The core classes with no logic for things like users, tokens, jobs, etc.
+- PriceFalcon.Infrastructure - Interact with external services such as the database, email sending, metrics etc. Only interfaces are publically exposed to the other projects.
 
 The structure as a diagram:
 
@@ -278,7 +278,7 @@ The structure as a diagram:
 
 This might seem like over-engineering at this stage, and it probably is, but it ensures a good separation of concerns and makes sure people don't start mixing all sorts of different code in a single place. It doesn't add significant overhead and future engineers will thank you.
 
-### Getting started ###
+### Getting started
 
 First up let's install Mediatr and create the library for commands/queries. For now handlers will live next to their commands, we could always extract these in future.
 
@@ -292,7 +292,7 @@ services.AddMediatR(typeof(SendEmailInvite).Assembly);
 
 We also need a place to stick code to send emails, interact with the database etc. To this end I added the PriceFalcon.Infrastructure project and referenced it from both Web and App.
 
-## Step 4 ##
+## Step 4
 
 Dockerise our applications. Cover
 
@@ -302,7 +302,7 @@ How to push to github from github actions.
 
 Create a personal access token (PAT).
 
-## Step 5 ##
+## Step 5
 
 k3s. Cover
 
@@ -374,6 +374,7 @@ Delete it:
 kubectl delete -f testdeploy.yaml
 ```
 
-# Notes #
+# Notes
 
-https://mbuffett.com/posts/kubernetes-setup/
+- https://mbuffett.com/posts/kubernetes-setup/
+- https://www.youtube.com/watch?v=lAyL9HKx8cQ

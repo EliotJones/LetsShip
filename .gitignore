@@ -262,7 +262,5 @@ paket-files/
 __pycache__/
 *.pyc
 *.bin
-*.min.js
-*.min.css
 *.sqlite
 db/data/

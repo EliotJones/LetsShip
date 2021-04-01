@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using PriceFalcon.Domain;
 using PriceFalcon.Infrastructure.DataAccess;
 using SendGrid;
@@ -20,24 +21,17 @@ namespace PriceFalcon.Infrastructure
         Task<int> GetSentTodayCount();
     }
 
-    public enum EmailSendResult
-    {
-        Success = 1,
-        Error = 2,
-        InvalidRecipient = 3,
-        ServiceUnavailable = 4,
-        QuotaExceeded = 5
-    }
-
     internal class SendGridEmailService : IEmailService
     {
         private readonly PriceFalconConfig _config;
         private readonly IEmailRepository _emailRepository;
+        private readonly ILogger<SendGridEmailService> _logger;
 
-        public SendGridEmailService(PriceFalconConfig config, IEmailRepository emailRepository)
+        public SendGridEmailService(PriceFalconConfig config, IEmailRepository emailRepository, ILogger<SendGridEmailService> logger)
         {
             _config = config;
             _emailRepository = emailRepository;
+            _logger = logger;
         }
 
         public async Task<EmailSendResult> Send(string recipient, string subject, string body)
@@ -46,6 +40,8 @@ namespace PriceFalcon.Infrastructure
 
             if (sentToday >= 100)
             {
+                _logger.LogInformation($"Could not send an email '{subject}' to {recipient} because we've already sent {sentToday} emails today.");
+
                 return EmailSendResult.QuotaExceeded;
             }
 
@@ -67,10 +63,16 @@ namespace PriceFalcon.Infrastructure
 
             if (response.IsSuccessStatusCode)
             {
+                _logger.LogDebug($"Successfully sent email '{subject}' to {recipient} with status {response.StatusCode}.");
+
                 await _emailRepository.Create(body, recipient, subject);
 
                 return EmailSendResult.Success;
             }
+
+            var content = await response.Body.ReadAsStringAsync();
+
+            _logger.LogError($"Failed to send email '{subject}' to {recipient}. SendGrid responded with status {response.StatusCode}: {content}.");
 
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
