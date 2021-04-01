@@ -78,7 +78,7 @@ namespace PriceFalcon.App.DraftJobs
 
             var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateDraftJob, DateTime.UtcNow.AddDays(10));
 
-            var message = $@"<p>Hi!</p><p>You requested a new job for PriceFalcon, use this link to create a new PriceFalcon monitoring job: 
+            var message = $@"<p>Hi there,</p><p>You requested a new job for PriceFalcon, use this link to create a new PriceFalcon price watch: 
                 <a href='http://localhost:5220/create/new/{token.token}'>Get started</a>
                 </p>";
 

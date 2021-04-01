@@ -55,11 +55,6 @@ for details on configuring this project to bundle and minify static web assets. 
     margin-bottom: 12px;
 }
 
-body {
-    /* Background pattern from Toptal Subtle Patterns */
-    background-image: url(../images/light_grey_lighter.png);
-}
-
 nav {
     height: 66px;
     background: #E11E60;

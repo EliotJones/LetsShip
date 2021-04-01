@@ -6,6 +6,14 @@ This will be a learning experience for me and hopefully the write up will help p
 
 The application we're building is an MVC web application backed by a PostgresSQL data store. The application allows users to submit arbitrary URLs of product pages from other sites to monitor for price changes and receive email alerts.
 
+The motivation here is to build and deloy a non-trivial site running in .NET 5. Like most people working in software I have a complete inability to ship a finished product. This tutorial aims to serve a motivation to reach that goal and also act as a blueprint for early stage products in the .NET space to make slightly better architecture and deployment decisions.
+
+We'll be deploying our application using a single node kubernetes cluster. I used to believe this was overengineering and kubernetes was a fad. But using k8s in a single node cluster gives up a couple of advantages that make it worth the up-front investment even for an MVP.
+
++ Zero downtime deployments using rolling updates. I've done enough weekend and evening deployments in my life. Our field (software) has a seriously unhealthy attitude to working hours. I should be able to push out a deployment in working hours and go home to do what I care about, not have to wait until outside working hours to make updates. If your engineers can't leave the office at 5pm you're doing something wrong.
++ Reproducible environments using docker. This isn't unique to k8s and there are other ways to deploy docker images but by containerising your application even with a single instance you ensure that you can test the same environment that runs in production. Fewer nasty surprises related to environment differences.
++ Load balancing and room to grow. Your site idea is going to fail, 99% of the time. But if not this set-up should give you a solid foundation for the first 2 years.
+
 ## Step 1 (you say we need to talk) ##
 
 First, find out what version of .NET we're running, from the command line run:
@@ -283,6 +291,88 @@ services.AddMediatR(typeof(SendEmailInvite).Assembly);
 ```
 
 We also need a place to stick code to send emails, interact with the database etc. To this end I added the PriceFalcon.Infrastructure project and referenced it from both Web and App.
+
+## Step 4 ##
+
+Dockerise our applications. Cover
+
+Why dockerise, multi-stage builds, reduce build size, alpine linux, setup firefox for selenium, etc.
+
+How to push to github from github actions.
+
+Create a personal access token (PAT).
+
+## Step 5 ##
+
+k3s. Cover
+
+Provision a server from hetzner, choose a server, setup ssh and alias the ssh action. Install and configure postgres
+and k3s.
+
+Create the simplest app to check it all works:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysite
+  labels:
+    app: mysite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysite
+  template:
+    metadata:
+      labels:
+        app: mysite
+    spec:
+      containers:
+        - name: mysite
+          image: kellygriffin/hello:v1
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysite
+spec:
+  ports:
+  - name: http
+    targetPort: 80
+    port: 80
+  selector:
+    app: mysite
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: mysite
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: mysite
+          servicePort: http
+```
+
+Load it in:
+
+```
+kubectl apply -f testdeploy.yaml
+```
+
+Delete it:
+
+```
+kubectl delete -f testdeploy.yaml
+```
 
 # Notes #
 

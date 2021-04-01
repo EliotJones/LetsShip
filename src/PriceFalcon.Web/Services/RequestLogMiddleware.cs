@@ -44,7 +44,15 @@ namespace PriceFalcon.Web.Services
 
             if (url.Contains("/create/track", StringComparison.OrdinalIgnoreCase) && context.Response.StatusCode / 100 == 2)
             {
-                // Skip the polling endpoints.
+                // Skip the successful polling endpoints.
+                return;
+            }
+
+            if (url.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+            || url.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+            || url.EndsWith(".php", StringComparison.OrdinalIgnoreCase))
+            {
+                // Skip resources and automated script-spam.
                 return;
             }
 

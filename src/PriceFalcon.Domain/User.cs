@@ -6,7 +6,7 @@ namespace PriceFalcon.Domain
     {
         public int Id { get; set; }
 
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         public bool IsVerified { get; set; }
 

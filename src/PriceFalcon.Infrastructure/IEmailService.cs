@@ -84,7 +84,7 @@ namespace PriceFalcon.Infrastructure
                 return EmailSendResult.ServiceUnavailable;
             }
 
-            return response.IsSuccessStatusCode ? EmailSendResult.Success : EmailSendResult.Error;
+            return EmailSendResult.Error;
         }
 
         public async Task<IReadOnlyList<Email>> GetAllSent()

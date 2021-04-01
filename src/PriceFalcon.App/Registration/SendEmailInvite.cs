@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using PriceFalcon.Domain;
 using PriceFalcon.Infrastructure;
 using PriceFalcon.Infrastructure.DataAccess;
@@ -32,17 +33,26 @@ namespace PriceFalcon.App.Registration
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
         private readonly PriceFalconConfig _config;
+        private readonly ILogger<SendEmailInviteHandler> _logger;
 
-        public SendEmailInviteHandler(IUserRepository userRepository, ITokenService tokenService, IEmailService emailService, PriceFalconConfig config)
+        public SendEmailInviteHandler(
+            IUserRepository userRepository,
+            ITokenService tokenService,
+            IEmailService emailService,
+            PriceFalconConfig config,
+            ILogger<SendEmailInviteHandler> logger)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
             _emailService = emailService;
             _config = config;
+            _logger = logger;
         }
 
         public async Task<SendEmailInviteResult> Handle(SendEmailInvite request, CancellationToken cancellationToken)
         {
+            _logger.LogInformation($"Email invite requested for {request.Email}.");
+
             if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
             {
                 return SendEmailInviteResult.Invalid;
@@ -52,6 +62,8 @@ namespace PriceFalcon.App.Registration
 
             if (user != null && user.IsVerified)
             {
+                _logger.LogInformation($"Email {request.Email} has already been verified.");
+
                 return SendEmailInviteResult.AlreadyVerified;
             }
 
@@ -65,6 +77,8 @@ namespace PriceFalcon.App.Registration
 
                 if (sent.Count >= 3)
                 {
+                    _logger.LogInformation($"Email {request.Email} has been emailed {sent.Count} times in the past 5 hours, skipping invite.");
+
                     return SendEmailInviteResult.QuotaExceeded;
                 }
             }
@@ -78,7 +92,30 @@ namespace PriceFalcon.App.Registration
                 <p>If you didn't sign up you can safely ignore this email, sorry for the inconvenience.</p>
                 <p><a href='{uri}'>Sign me up!</a></p>";
             
-            await _emailService.Send(user.Email, "Verify your email", message);
+            var result = await _emailService.Send(user.Email, "Verify your email", message);
+
+            if (result == EmailSendResult.QuotaExceeded)
+            {
+                _logger.LogWarning($"Could not invite {user.Email} because the email quota was exceeded.");
+
+                return SendEmailInviteResult.QuotaExceeded;
+            }
+
+            if (result == EmailSendResult.InvalidRecipient)
+            {
+                _logger.LogWarning($"Invalid recipient for email invite {user.Email}.");
+
+                return SendEmailInviteResult.Invalid;
+            }
+
+            if (result == EmailSendResult.ServiceUnavailable || result == EmailSendResult.Error)
+            {
+                _logger.LogError($"Could not invite {user.Email} because the email service was down.");
+
+                return SendEmailInviteResult.Invalid;
+            }
+
+            _logger.LogInformation($"Sent invite to {user.Email}.");
 
             return SendEmailInviteResult.Sent;
         }

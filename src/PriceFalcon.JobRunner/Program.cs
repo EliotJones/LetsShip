@@ -16,6 +16,8 @@ namespace PriceFalcon.JobRunner
     {
         public static void Main(string[] args)
         {
+            Console.WriteLine($"Running with UTC time: {DateTime.UtcNow}.");
+
             CreateHostBuilder(args).Build().Run();
         }
 
