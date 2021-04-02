@@ -2,18 +2,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pricefalcon
+  name: pricefalconweb
   labels:
-    app: pricefalcon
+    app: pricefalconweb
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
   selector:
     matchLabels:
-      app: pricefalcon
+      app: pricefalconweb
   template:
     metadata:
       labels:
-        app: pricefalcon
+        app: pricefalconweb
     spec:
       containers:
         - name: pricefalcon
@@ -33,11 +35,13 @@ spec:
                 secretKeyRef:
                   name: sendgridapikey
                   key: api-key
+            - name: SiteUrl
+              value: https://pricefalcon.me
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: pricefalcon
+  name: pricefalconweb
 spec:
   ports:
     - name: http
@@ -47,12 +51,12 @@ spec:
       targetPort: 6110
       port: 443
   selector:
-    app: pricefalcon
+    app: pricefalconweb
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: pricefalcon
+  name: pricefalconweb
   annotations:
     kubernetes.io/ingress.class: "traefik"
     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -68,3 +72,33 @@ spec:
     - hosts:
         - pricefalcon.me
       secretName: pricefalcon-me-tls
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pricefalconcrawl
+  labels:
+    app: pricefalconcrawl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pricefalconcrawl
+  template:
+    metadata:
+      labels:
+        app: pricefalconcrawl
+    spec:
+      containers:
+        - name: pricefalcon
+          image: ghcr.io/eliotjones/falconcrawl:latest
+          ports:
+            - containerPort: 6770
+          env:
+            - name: ConnectionStrings__Default
+              valueFrom:
+                secretKeyRef:
+                  name: connectionstring
+                  key: connection-string
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
