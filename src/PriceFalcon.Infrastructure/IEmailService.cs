@@ -55,7 +55,7 @@ namespace PriceFalcon.Infrastructure
             {
                 SandboxMode = new SandboxMode
                 {
-                    Enable = true
+                    Enable = _config.Environment != EnvironmentType.Production
                 }
             };
 

@@ -46,13 +46,17 @@ namespace PriceFalcon.App.DraftJobs
         private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private readonly PriceFalconConfig _config;
 
-        public RequestNewJobTokenHandler(IUserRepository userRepository, ITokenService tokenService,
-            IEmailService emailService)
+        public RequestNewJobTokenHandler(IUserRepository userRepository,
+            ITokenService tokenService,
+            IEmailService emailService,
+            PriceFalconConfig config)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
             _emailService = emailService;
+            _config = config;
         }
 
         public async Task<RequestNewJobTokenResult> Handle(RequestNewJobToken request, CancellationToken cancellationToken)
@@ -78,8 +82,10 @@ namespace PriceFalcon.App.DraftJobs
 
             var token = await _tokenService.GenerateToken(user.Id, Token.TokenPurpose.CreateDraftJob, DateTime.UtcNow.AddDays(10));
 
+            var uri = new Uri(_config.SiteUrl, $"create/new/{token.token}");
+
             var message = $@"<p>Hi there,</p><p>You requested a new job for PriceFalcon, use this link to create a new PriceFalcon price watch: 
-                <a href='http://localhost:5220/create/new/{token.token}'>Get started</a>
+                <a href='{uri}'>Get started</a>
                 </p>";
 
             await _emailService.Send(user.Email, "Create a new job", message);
