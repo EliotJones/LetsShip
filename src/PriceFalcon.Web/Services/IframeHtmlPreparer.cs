@@ -83,6 +83,15 @@ namespace PriceFalcon.Web.Services
                 }
             }
 
+            var inputs = doc.DocumentNode.SelectNodes("//input[@type='submit']");
+
+            foreach (var input in inputs)
+            {
+                var typeAttr = input.Attributes["type"];
+
+                typeAttr?.Remove();
+            }
+
             const string jqueryScript =
                 @"<script src=""https://code.jquery.com/jquery-3.6.0.slim.min.js"" integrity=""sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI="" crossorigin=""anonymous""></script>";
 

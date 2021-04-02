@@ -39,15 +39,13 @@ RUN mkdir app
 
 WORKDIR /app
 
-COPY docker/crawler/run-xvfb.sh /app/run-xvfb.sh
-RUN chmod a+x /app/run-xvfb.sh
+COPY docker/crawler/run-via-xvfb.sh /app/run-via-xvfb.sh
+RUN chmod a+x /app/run-via-xvfb.sh
 
 COPY --from=build /build/crawler .
 
 RUN chmod a+x Drivers/Linux/geckodriver
 
-CMD /app/run-xvfb.sh
-
-ENTRYPOINT [ "./PriceFalcon.JobRunner" ]
+ENTRYPOINT [ "./run-via-xvfb.sh" ]
 
 # docker run --rm -it -e ConnectionStrings__Default="Server=host.docker.internal;Port=5432;Database=pricefalcon;User Id=devwrite;Password=xE:UZj4buVy2&&3n;" -e DOTNET_ENVIRONMENT="Development" crawler
