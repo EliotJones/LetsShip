@@ -5,4 +5,4 @@ RD /S /Q src\PriceFalcon.App\obj
 RD /S /Q src\PriceFalcon.Infrastructure\bin
 RD /S /Q src\PriceFalcon.Infrastructure\obj
 
-docker build -t falconweb:latest -f docker/web/Dockerfile.yml .
+docker build -t falconweb:latest -f docker/web/Dockerfile .
