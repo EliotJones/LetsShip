@@ -44,7 +44,7 @@ RUN chmod a+x /app/run-xvfb.sh
 
 COPY --from=build /build/crawler .
 
-RUN chmod a+x /Drivers/Linux/geckodriver
+RUN chmod a+x Drivers/Linux/geckodriver
 
 CMD /app/run-xvfb.sh
 
