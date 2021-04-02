@@ -28,8 +28,7 @@ WORKDIR /app
 COPY --from=build /build/web .
 
 ENV ASPNETCORE_URLS=http://+:6110 \
-    SiteUrl=http://localhost:6110 \
-    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+    SiteUrl=http://localhost:6110
 
 EXPOSE 6110
 

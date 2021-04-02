@@ -374,6 +374,20 @@ Delete it:
 kubectl delete -f testdeploy.yaml
 ```
 
+Get the running containers:
+
+```
+crictl ps
+```
+
+Get the container id and run:
+
+```
+crictl exec -it 57c8989ef713f '/bin/sh'
+```
+
+To attach with a shell.
+
 # Notes
 
 - https://mbuffett.com/posts/kubernetes-setup/

@@ -1,0 +1,70 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pricefalcon
+  labels:
+    app: pricefalcon
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pricefalcon
+  template:
+    metadata:
+      labels:
+        app: pricefalcon
+    spec:
+      containers:
+        - name: pricefalcon
+          image: ghcr.io/eliotjones/falconweb:latest
+          ports:
+            - containerPort: 6110
+          env:
+            - name: ConnectionStrings__Default
+              valueFrom:
+                secretKeyRef:
+                  name: connectionstring
+                  key: connection-string
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: PRICE_FALCON_SENDGRID
+              valueFrom:
+                secretKeyRef:
+                  name: sendgridapikey
+                  key: api-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pricefalcon
+spec:
+  ports:
+    - name: http
+      targetPort: 6110
+      port: 80
+    - name: https
+      targetPort: 6110
+      port: 443
+  selector:
+    app: pricefalcon
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: pricefalcon
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            backend:
+              serviceName: pricefalcon
+              servicePort: http
+  tls:
+    - hosts:
+        - pricefalcon.me
+      secretName: pricefalcon-me-tls
