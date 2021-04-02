@@ -16,12 +16,12 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:5.0.4-focal as run
 
 RUN apt-get update && \
   apt-get -y --no-install-recommends install \
-    xvfb \
-    firefox \
-    libfontconfig \
-    libfreetype6 \
-    xfonts-cyrillic \
-    xfonts-scalable \
+  xvfb \
+  firefox \
+  libfontconfig \
+  libfreetype6 \
+  xfonts-cyrillic \
+  xfonts-scalable \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get -qyy clean
 
@@ -43,6 +43,8 @@ COPY docker/crawler/run-xvfb.sh /app/run-xvfb.sh
 RUN chmod a+x /app/run-xvfb.sh
 
 COPY --from=build /build/crawler .
+
+RUN chmod a+x /Drivers/Linux/geckodriver
 
 CMD /app/run-xvfb.sh
 

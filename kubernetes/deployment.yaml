@@ -66,7 +66,7 @@ spec:
         paths:
           - path: /
             backend:
-              serviceName: pricefalcon
+              serviceName: pricefalconweb
               servicePort: http
   tls:
     - hosts:

@@ -48,6 +48,8 @@ namespace PriceFalcon.JobRunner
                         throw new InvalidOperationException("JobCrawler is not support on your operating system, use Windows or Linux.");
                     }
 
+                    Console.WriteLine($"Using gecko driver from: {geckoPath}");
+
                     var isDev = hostContext.HostingEnvironment.IsDevelopment();
                     services.AddSingleton<ICrawler>(new FirefoxCrawler(geckoPath, isDev ? 1 : 3, isDev));
 
