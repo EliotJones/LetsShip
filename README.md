@@ -1,5 +1,7 @@
 # Let's Ship - PriceFalcon
 
+[PriceFalcon](https://pricefalcon.me)
+
 The aim of this repository is to share the experience of developing and shipping a working .NET 5 application including deployments, dev-ops, migrations, etc.
 
 This will be a learning experience for me and hopefully the write up will help people get up to speed with .NET 5 if they've never used it before, including deploying to Linux machines.
@@ -87,7 +89,9 @@ You are now the proud owner of 1 Visual Studio 2019, congratulations. Double cli
 
 If you expand Solution Explorer you should see and empty Solution. If you right click it and select `Add > Existing Project...` then we can browse for the project (`.csproj`) file for the web project.
 
-[IMG001][img002][IMG003]
+![img 1](https://github.com/EliotJones/LetsShip/blob/main/docs/images/img001.png?type=raw)
+![img 2](https://github.com/EliotJones/LetsShip/blob/main/docs/images/img002.png?type=raw)
+![img 3](https://github.com/EliotJones/LetsShip/blob/main/docs/images/img003.png?type=raw)
 
 We now have a minimal solution and web project set-up.
 
@@ -244,7 +248,7 @@ In addition it's useful to have a tool to connect to the database, for this purp
 
 You can connect to our newly created database with the following settings:
 
-[img004]
+![img 4](https://github.com/EliotJones/LetsShip/blob/main/docs/images/img004.png?type=raw)
 
 Now we've got the first part of our infrastructure and project set-up, let's commit and take a break.
 
@@ -274,7 +278,7 @@ We will use the following 4 projects for the web application part of our project
 
 The structure as a diagram:
 
-[IMG005]
+![img 5](https://github.com/EliotJones/LetsShip/blob/main/docs/images/img005.png?type=raw)
 
 This might seem like over-engineering at this stage, and it probably is, but it ensures a good separation of concerns and makes sure people don't start mixing all sorts of different code in a single place. It doesn't add significant overhead and future engineers will thank you.
 
