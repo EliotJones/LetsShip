@@ -36,6 +36,12 @@ namespace PriceFalcon.Web.Controllers
             return View();
         }
 
+        [HttpGet("about")]
+        public IActionResult About()
+        {
+            return View();
+        }
+
         [HttpPost("")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Start(IndexViewModel model)

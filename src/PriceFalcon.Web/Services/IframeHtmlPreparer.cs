@@ -15,81 +15,102 @@ namespace PriceFalcon.Web.Services
 
             var scripts = doc.DocumentNode.SelectNodes("//script");
 
-            foreach (var script in scripts)
+            if (scripts != null)
             {
-                script.Remove();
+                foreach (var script in scripts)
+                {
+                    script.Remove();
+                }
             }
 
             var links = doc.DocumentNode.SelectNodes("//link");
 
-            foreach (var link in links)
+            if (links != null)
             {
-                var attr = link.Attributes["href"];
-
-                if (attr?.Value?.StartsWith("//") == true)
+                foreach (var link in links)
                 {
-                    attr.Value = "https:" + attr.Value;
+                    var attr = link.Attributes["href"];
+
+                    if (attr?.Value?.StartsWith("//") == true)
+                    {
+                        attr.Value = "https:" + attr.Value;
+                    }
                 }
             }
 
             var images = doc.DocumentNode.SelectNodes("//img");
 
-            foreach (var image in images)
+            if (images != null)
             {
-                var attr = image.Attributes["lazy-src"];
-
-                if (attr?.Value?.StartsWith("/") == true)
+                foreach (var image in images)
                 {
-                    attr.Value = server + attr.Value;
-                }
+                    var attr = image.Attributes["lazy-src"];
 
-                var srcAttr = image.Attributes["src"];
+                    if (attr?.Value?.StartsWith("/") == true)
+                    {
+                        attr.Value = server + attr.Value;
+                    }
 
-                if (srcAttr?.Value?.StartsWith("/") == true)
-                {
-                    srcAttr.Value = server + srcAttr.Value;
+                    var srcAttr = image.Attributes["src"];
+
+                    if (srcAttr?.Value?.StartsWith("/") == true)
+                    {
+                        srcAttr.Value = server + srcAttr.Value;
+                    }
                 }
             }
 
             var anchors = doc.DocumentNode.SelectNodes("//a");
 
-            foreach (var anchor in anchors)
+            if (anchors != null)
             {
-                var attr = anchor.Attributes["href"];
+                foreach (var anchor in anchors)
+                {
+                    var attr = anchor.Attributes["href"];
 
-                attr?.Remove();
+                    attr?.Remove();
 
-                anchor.Attributes["target"]?.Remove();
+                    anchor.Attributes["target"]?.Remove();
+                }
             }
 
             var labels = doc.DocumentNode.SelectNodes("//label");
 
-            foreach (var label in labels)
+            if (labels != null)
             {
-                var attr = label.Attributes["for"];
+                foreach (var label in labels)
+                {
+                    var attr = label.Attributes["for"];
 
-                attr?.Remove();
+                    attr?.Remove();
+                }
             }
 
             var buttons = doc.DocumentNode.SelectNodes("//button");
 
-            foreach (var button in buttons)
+            if (buttons != null)
             {
-                var typeAttr = button.Attributes["type"];
-
-                if (typeAttr != null)
+                foreach (var button in buttons)
                 {
-                    typeAttr.Value = "button";
+                    var typeAttr = button.Attributes["type"];
+
+                    if (typeAttr != null)
+                    {
+                        typeAttr.Value = "button";
+                    }
                 }
             }
 
             var inputs = doc.DocumentNode.SelectNodes("//input[@type='submit']");
 
-            foreach (var input in inputs)
+            if (inputs != null)
             {
-                var typeAttr = input.Attributes["type"];
+                foreach (var input in inputs)
+                {
+                    var typeAttr = input.Attributes["type"];
 
-                typeAttr?.Remove();
+                    typeAttr?.Remove();
+                }
             }
 
             const string jqueryScript =

@@ -199,3 +199,16 @@ nav {
     border: 2px solid #e74c3c;
     color: #e74c3c;
 }
+
+#about-link {
+    position: fixed;
+    top: 25px;
+    right: 32px;
+    color: #7f8c8d;
+    text-decoration: none;
+    font-size: 1.2em;
+}
+
+#about-link:hover {
+    color: #34495e;
+}
