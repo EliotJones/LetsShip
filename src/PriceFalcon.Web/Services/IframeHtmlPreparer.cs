@@ -35,6 +35,10 @@ namespace PriceFalcon.Web.Services
                     {
                         attr.Value = "https:" + attr.Value;
                     }
+                    else if (attr?.Value?.StartsWith("/") == true)
+                    {
+                        attr.Value = server + attr.Value;
+                    }
                 }
             }
 
