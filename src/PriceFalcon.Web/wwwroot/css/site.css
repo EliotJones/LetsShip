@@ -69,7 +69,13 @@ nav {
         margin-right: 16px;
         font-weight: bold;
         font-size: 3.6rem;
+        display: flex;
+        align-items: center;
     }
+
+.logo-section img {
+    margin-right: 16px;
+}
 
 .logo-section a {
     text-decoration: none;
