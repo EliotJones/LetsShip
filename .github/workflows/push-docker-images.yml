@@ -50,7 +50,7 @@ jobs:
           docker push $CRAWL_IMAGE_ID:$VERSION
 
       - name: Update deployment image id
-        uses: datamonsters/replace-action
+        uses: datamonsters/replace-action@master
         with:
           files: "kubernetes/deployment.yaml"
           replacements: "ghcr.io/eliotjones/falconweb:latest=ghcr.io/eliotjones/falconweb:${{ github.sha }},ghcr.io/eliotjones/falconcrawl:latest=ghcr.io/eliotjones/falconcrawl:${{ github.sha }}"
