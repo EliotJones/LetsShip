@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.Extensions.Logging;
 using PriceFalcon.Infrastructure.DataAccess;
 
 namespace PriceFalcon.Web.Services
@@ -11,11 +13,13 @@ namespace PriceFalcon.Web.Services
     {
         private readonly RequestDelegate _next;
         private readonly RequestLogQueue _queue;
+        private readonly ILogger<RequestLogMiddleware> _logger;
 
-        public RequestLogMiddleware(RequestDelegate next, RequestLogQueue queue)
+        public RequestLogMiddleware(RequestDelegate next, RequestLogQueue queue, ILogger<RequestLogMiddleware> logger)
         {
             _next = next;
             _queue = queue;
+            _logger = logger;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -23,6 +27,14 @@ namespace PriceFalcon.Web.Services
             var stopwatch = Stopwatch.StartNew();
 
             var ip = context.Request.Headers["X-Forwarded-For"];
+
+            var logHeaders = new StringBuilder();
+            foreach (var header in context.Request.Headers)
+            {
+                logHeaders.AppendLine($"{header.Key}: {header.Value}");
+            }
+
+            _logger.LogInformation(logHeaders.ToString());
 
             string ipAddress;
             if (ip.Count == 0)
