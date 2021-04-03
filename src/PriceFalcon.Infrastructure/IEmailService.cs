@@ -48,7 +48,7 @@ namespace PriceFalcon.Infrastructure
             var key = _config.SendGridApiKey;
 
             var client = new SendGridClient(key);
-            var from = new EmailAddress("noreply.pricefalcon@pricefalcon.com");
+            var from = new EmailAddress("noreply@pricefalcon.me", "PriceFalcon");
             var to = new EmailAddress(recipient);
             var msg = MailHelper.CreateSingleEmail(from, to, subject, body, body);
             msg.MailSettings = new MailSettings
