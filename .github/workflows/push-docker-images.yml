@@ -20,7 +20,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
+      
+      - name: Deploy using kubectl
+        uses: steebchen/kubectl@master
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        with:
+          args: apply -f kubernetes/deployment.yaml
+          
       - name: Build web image
         run: pwd && docker build -f docker/web/Dockerfile -t $WEB_IMAGE_NAME .
         working-directory: .
@@ -58,12 +65,5 @@ jobs:
 
           docker tag $CRAWL_IMAGE_NAME $CRAWL_IMAGE_ID:$VERSION
           docker push $CRAWL_IMAGE_ID:$VERSION
-      
-      - name: Deploy using kubectl
-        uses: steebchen/kubectl@master
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-        with:
-          args: apply -f kubernetes/deployment.yaml
           
           
