@@ -29,7 +29,7 @@ spec:
                   name: connectionstring
                   key: connection-string
             - name: ASPNETCORE_ENVIRONMENT
-              value: "Development"
+              value: "Production"
             - name: PRICE_FALCON_SENDGRID
               valueFrom:
                 secretKeyRef:
