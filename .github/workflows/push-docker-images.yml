@@ -20,14 +20,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      
-      - name: Deploy using kubectl
-        uses: steebchen/kubectl@master
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
-        with:
-          args: apply -f kubernetes/deployment.yaml
-          
+
       - name: Build web image
         run: pwd && docker build -f docker/web/Dockerfile -t $WEB_IMAGE_NAME .
         working-directory: .
@@ -43,18 +36,8 @@ jobs:
           WEB_IMAGE_ID=ghcr.io/eliotjones/$WEB_IMAGE_NAME
           CRAWL_IMAGE_ID=ghcr.io/eliotjones/$CRAWL_IMAGE_NAME
 
-          # Change all uppercase to lowercase
-          WEB_IMAGE_ID=$(echo $WEB_IMAGE_ID | tr '[A-Z]' '[a-z]')
-          CRAWL_IMAGE_ID=$(echo $CRAWL_IMAGE_ID | tr '[A-Z]' '[a-z]')
-
-          # Strip git ref prefix from version
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-
-          # Strip "v" prefix from tag name
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-
-          # Use Docker `latest` tag convention
-          [ "$VERSION" == "main" ] && VERSION=latest
+          # Use the commit SHA as the version.
+          VERSION=${{ github.sha }}
 
           echo WEB_IMAGE_ID=$WEB_IMAGE_ID
           echo CRAWL_IMAGE_ID=$CRAWL_IMAGE_ID
@@ -65,5 +48,16 @@ jobs:
 
           docker tag $CRAWL_IMAGE_NAME $CRAWL_IMAGE_ID:$VERSION
           docker push $CRAWL_IMAGE_ID:$VERSION
-          
-          
+
+      - name: Update deployment image id
+        uses: datamonsters/replace-action
+        with:
+          files: "kubernetes/deployment.yaml"
+          replacements: "ghcr.io/eliotjones/falconweb:latest=ghcr.io/eliotjones/falconweb:${{ github.sha }},ghcr.io/eliotjones/falconcrawl:latest=ghcr.io/eliotjones/falconcrawl:${{ github.sha }}"
+
+      - name: Deploy using kubectl
+        uses: steebchen/kubectl@master
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        with:
+          args: apply -f kubernetes/deployment.yaml
