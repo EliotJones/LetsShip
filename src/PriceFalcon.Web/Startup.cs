@@ -68,6 +68,11 @@ namespace PriceFalcon.Web
 
             app.UseStaticFiles();
 
+            if (!env.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
+
             app.UseRouting();
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions

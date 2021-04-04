@@ -28,6 +28,7 @@ namespace PriceFalcon.Web
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    webBuilder.ConfigureKestrel(cfg => cfg.AddServerHeader = false);
                     webBuilder.UseStartup<Startup>();
                 });
     }
