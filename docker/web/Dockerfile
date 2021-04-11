@@ -1,13 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:5.0-alpine3.13 as build
 LABEL stage=builder
 
-RUN mkdir build
-
 WORKDIR /build
 
 COPY src .
-
-RUN mkdir web
 
 # dotnet restore is a hefty boi, if it is run separately it can be cached.
 # linux-musl-x64 is for lightweight containers like alpine linux.
