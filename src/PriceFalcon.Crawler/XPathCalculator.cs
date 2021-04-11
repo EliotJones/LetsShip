@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using HtmlAgilityPack;
 using PriceFalcon.Domain;
@@ -49,9 +50,22 @@ namespace PriceFalcon.Crawler
             if (itemPropAttr != null && !string.IsNullOrWhiteSpace(itemPropAttr.Value))
             {
                 xpath = $"//{tagType}[@itemprop='{itemPropAttr.Value}']";
-                var itempropNodes = doc.DocumentNode.SelectNodes(xpath).ToList();
+                var itemPropNodes = doc.DocumentNode.SelectNodes(xpath).ToList();
 
-                if (itempropNodes.Count == 1)
+                if (itemPropNodes.Count == 1)
+                {
+                    return true;
+                }
+            }
+
+            var dataRoleAttr = element.DocumentNode.FirstChild.Attributes["data-role"];
+
+            if (dataRoleAttr != null && !string.IsNullOrWhiteSpace(dataRoleAttr.Value))
+            {
+                xpath = $"//{tagType}[@data-role='{dataRoleAttr.Value}']";
+                var dataRoleNodes = doc.DocumentNode.SelectNodes(xpath).ToList();
+
+                if (dataRoleNodes.Count == 1)
                 {
                     return true;
                 }
@@ -83,6 +97,39 @@ namespace PriceFalcon.Crawler
                     xpath = $"//{parent.Tag.ToLowerInvariant()}[@class='{parentClassAttr}']";
 
                     var classNodes = doc.DocumentNode.SelectNodes(xpath).ToList();
+
+                    if (classNodes.Count != 1)
+                    {
+                        previous.Add(parent);
+                        continue;
+                    }
+
+                    var matchExact = string.Equals(classNodes[0].InnerText.Trim(), selection.Text.Trim(), StringComparison.OrdinalIgnoreCase);
+
+                    if (matchExact)
+                    {
+                        return true;
+                    }
+
+                    if (previous.Count == 0)
+                    {
+                        previous.Add(parent);
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(previous[0].Classes))
+                    {
+                        // The most exact nested selector.
+                        xpath = $"{xpath}//{previous[0].Tag.ToLowerInvariant()}[@class='{previous[0].Classes}']";
+
+                        classNodes = doc.DocumentNode.SelectNodes(xpath).ToList();
+
+                        if (classNodes.Count == 1 && string.Equals(classNodes[0].InnerText.Trim(), selection.Text.Trim(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
+                    
 
                     if (classNodes.Count == 1 && classNodes[0].InnerText == selection.Text)
                     {

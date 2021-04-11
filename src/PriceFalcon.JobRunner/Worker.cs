@@ -18,7 +18,7 @@ namespace PriceFalcon.JobRunner
         private readonly IJobRepository _jobRepository;
         private readonly ICrawler _crawler;
 
-        private readonly List<Task> _running = new List<Task>();
+        private readonly Dictionary<Guid, Task> _running = new Dictionary<Guid, Task>();
 
         public Worker(ILogger<Worker> logger, IDraftJobRepository draftJobRepository, IJobRepository jobRepository, ICrawler crawler)
         {
@@ -46,15 +46,16 @@ namespace PriceFalcon.JobRunner
                         continue;
                     }
 
+                    var taskId = Guid.NewGuid();
                     var task = Task.Run(
                             async () =>
                             {
                                 await RunDraftJob(draftJob, stoppingToken);
                             },
                             stoppingToken)
-                        .ContinueWith(t => _running.Remove(t), stoppingToken);
+                        .ContinueWith(t => _running.Remove(taskId), stoppingToken);
 
-                    _running.Add(task);
+                    _running.Add(taskId, task);
                 }
 
                 var pendingJobs = await _jobRepository.GetJobsDue();
@@ -69,15 +70,16 @@ namespace PriceFalcon.JobRunner
                         continue;
                     }
 
+                    var taskId = Guid.NewGuid();
                     var task = Task.Run(
                             async () =>
                             {
                                 await RunJob(job, stoppingToken);
                             },
                             stoppingToken)
-                        .ContinueWith(t => _running.Remove(t), stoppingToken);
+                        .ContinueWith(t => _running.Remove(taskId), stoppingToken);
 
-                    _running.Add(task);
+                    _running.Add(taskId, task);
                 }
 
                 await Task.Delay(5000, stoppingToken);
