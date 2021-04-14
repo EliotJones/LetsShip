@@ -29,6 +29,10 @@ namespace PriceFalcon.Infrastructure.DataAccess
         Task MarkAllJobRunsNotifiedForJob(int jobId);
 
         Task<Job> GetById(int id);
+
+        Task<Job> GetByToken(string token);
+
+        Task CancelJob(int jobId);
     }
 
     internal class JobRepository : IJobRepository
@@ -44,7 +48,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
         {
             await using var connection = await _connectionProvider.Get();
 
-            return await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM jobs WHERE user_id = @userId;", new {userId = userId});
+            return await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM jobs WHERE user_id = @userId;", new { userId = userId });
         }
 
         public async Task Create(int tokenId, HtmlElementSelection selector, decimal price, string xpath, int draftJobId)
@@ -102,7 +106,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             return await connection.QueryFirstOrDefaultAsync<Job>(
                 "SELECT * FROM jobs WHERE draft_job_id = @draftJobId;",
-                new {draftJobId = draftJobId});
+                new { draftJobId = draftJobId });
         }
 
         public async Task<IReadOnlyList<Job>> GetJobsDue()
@@ -110,8 +114,8 @@ namespace PriceFalcon.Infrastructure.DataAccess
             await using var connection = await _connectionProvider.Get();
 
             var results = await connection.QueryAsync<Job>(
-                "SELECT * FROM jobs WHERE next_due_date <= @date;",
-                new {date = DateTime.UtcNow});
+                "SELECT * FROM jobs WHERE next_due_date <= @date AND status = @status;",
+                new { date = DateTime.UtcNow, status = JobStatus.Active });
 
             return results.ToList();
         }
@@ -126,7 +130,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
                 var job = await connection.QueryFirstAsync<Job>(
                     "SELECT * FROM jobs WHERE id = @id FOR UPDATE;",
-                    new {id = jobId},
+                    new { id = jobId },
                     transaction);
 
                 return new TransactionJobLock(job, transaction, connection);
@@ -154,7 +158,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             var results = await connection.QueryAsync<JobRun>(
                 "SELECT * FROM job_runs WHERE job_id = @id ORDER BY created DESC;",
-                new {id = jobId});
+                new { id = jobId });
 
             return results.ToList();
         }
@@ -165,7 +169,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             await connection.ExecuteAsync(
                 "UPDATE job_runs SET is_notified = TRUE WHERE job_id = @id;",
-                new {id = jobId});
+                new { id = jobId });
         }
 
         public async Task<Job> GetById(int id)
@@ -174,7 +178,25 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             return await connection.QuerySingleAsync<Job>(
                 "SELECT * FROM jobs WHERE id = @id;",
-                new {id = id});
+                new { id = id });
+        }
+
+        public async Task<Job> GetByToken(string token)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            return await connection.QuerySingleAsync<Job>(
+                "SELECT j.* FROM jobs as j INNER JOIN tokens as t on t.id = j.token_id WHERE t.value = @token;",
+                new { token = token });
+        }
+
+        public async Task CancelJob(int jobId)
+        {
+            await using var connection = await _connectionProvider.Get();
+
+            await connection.ExecuteAsync(
+                "UPDATE jobs SET status = @status WHERE id = @id;",
+                new { id = jobId, status = JobStatus.Deleted });
         }
     }
 
@@ -219,7 +241,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
 
             await _connection.ExecuteAsync(
                 "UPDATE jobs SET next_due_date = @date WHERE id = @id;",
-                new {date = nextDue, id = _job.Id},
+                new { date = nextDue, id = _job.Id },
                 _transaction);
 
             _transaction.Commit();

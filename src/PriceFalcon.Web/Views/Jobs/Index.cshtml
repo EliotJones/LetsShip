@@ -1,0 +1,48 @@
+﻿@model PriceFalcon.App.Jobs.JobData
+
+@{
+    var jsString = string.Join(", ", Model.DataPoints.Select(x => $"{{ x: '{x.Date:yyyy-MM-dd}', y: {x.Value}}}"));
+}
+
+<h3>Price watch</h3>
+<p>Watching <a href="@Model.Website" target="_blank">@Model.Website.ToString()</a></p>
+
+<div>
+    <svg id="line-chart"></svg>
+</div>
+<div class="row">
+    <form asp-action="CancelJob" asp-route-token="@ViewData["token"]">
+        <div class="form-group">
+            <button type="submit" class="button-danger u-pull-right">Cancel</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts{
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.xkcd@1/dist/chart.xkcd.min.js"></script>
+    <script>
+        var svg = document.querySelector('#line-chart');
+
+        new chartXkcd.XY(svg, {
+            title: 'Price watch history',
+            xLabel: 'Date',
+            yLabel: 'Value',
+            data: {
+                datasets: [{
+                    label: 'Price history',
+                    data: [@Html.Raw(jsString)]
+                }]
+            },
+            options: {
+                xTickCount: 3,
+                yTickCount: 4,
+                legendPosition: chartXkcd.config.positionType.upLeft,
+                showLine: true,
+                timeFormat: 'DD/MM/YYYY',
+                dotSize: 0.5
+            }
+        });
+
+    </script>
+}

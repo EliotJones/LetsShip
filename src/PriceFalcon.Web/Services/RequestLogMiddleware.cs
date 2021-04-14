@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
+using PriceFalcon.Infrastructure;
 using PriceFalcon.Infrastructure.DataAccess;
 
 namespace PriceFalcon.Web.Services
@@ -11,11 +12,13 @@ namespace PriceFalcon.Web.Services
     {
         private readonly RequestDelegate _next;
         private readonly RequestLogQueue _queue;
+        private readonly PriceFalconConfig _config;
 
-        public RequestLogMiddleware(RequestDelegate next, RequestLogQueue queue)
+        public RequestLogMiddleware(RequestDelegate next, RequestLogQueue queue, PriceFalconConfig config)
         {
             _next = next;
             _queue = queue;
+            _config = config;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -42,7 +45,7 @@ namespace PriceFalcon.Web.Services
 
             var url = context.Request.GetDisplayUrl();
 
-            if (url.Contains("/create/track", StringComparison.OrdinalIgnoreCase) && context.Response.StatusCode / 100 == 2)
+            if (url == null || url.Contains("/create/track", StringComparison.OrdinalIgnoreCase) && context.Response.StatusCode / 100 == 2)
             {
                 // Skip the successful polling endpoints.
                 return;
@@ -53,6 +56,13 @@ namespace PriceFalcon.Web.Services
             || url.EndsWith(".php", StringComparison.OrdinalIgnoreCase))
             {
                 // Skip resources and automated script-spam.
+                return;
+            }
+
+            var uri = new Uri(url);
+
+            if (_config.Environment != EnvironmentType.Development && uri.Host.Contains("pricefalcon", StringComparison.OrdinalIgnoreCase))
+            {
                 return;
             }
 

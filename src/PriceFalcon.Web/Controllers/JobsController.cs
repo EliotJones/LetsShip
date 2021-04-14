@@ -68,10 +68,23 @@ namespace PriceFalcon.Web.Controllers
             return View();
         }
 
-        [Route("{token}")]
-        public IActionResult Index(string token)
+        [HttpGet("{token}")]
+        public async Task<IActionResult> Index(string token)
         {
-            return Ok();
+            ViewData["token"] = token;
+
+            var data = await _mediator.Send(new GetJobData(token));
+
+            return View(data);
+        }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost("cancel/{token}")]
+        public async Task<IActionResult> CancelJob(string token)
+        {
+            await _mediator.Send(new CancelJob(token));
+
+            return RedirectToAction("Index", "Home");
         }
     }
 }
