@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using PriceFalcon.Domain;
 using PriceFalcon.Infrastructure.DataAccess;
 
 namespace PriceFalcon.App.Jobs
@@ -49,7 +50,7 @@ namespace PriceFalcon.App.Jobs
             return new JobData
             {
                 Website = job.Url,
-                DataPoints = runs.Select(x => new JobData.DataPoint
+                DataPoints = runs.Where(x => x.Status == JobRunStatus.Succeeded).Select(x => new JobData.DataPoint
                 {
                     Value = x.Price.GetValueOrDefault(),
                     Date = x.Created

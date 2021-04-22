@@ -21,7 +21,8 @@ spec:
         - name: pricefalcon
           image: ghcr.io/eliotjones/falconweb:latest
           ports:
-            - containerPort: 6110
+            - name: httpin
+              containerPort: 6110
           env:
             - name: ConnectionStrings__Default
               valueFrom:
@@ -45,10 +46,10 @@ metadata:
 spec:
   ports:
     - name: http
-      targetPort: 6110
+      targetPort: httpin
       port: 80
     - name: https
-      targetPort: 6110
+      targetPort: httpin
       port: 443
   selector:
     app: pricefalconweb

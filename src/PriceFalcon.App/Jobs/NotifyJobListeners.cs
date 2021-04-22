@@ -76,6 +76,18 @@ namespace PriceFalcon.App.Jobs
                 if (latest.Status == JobRunStatus.Succeeded && latest.Price.HasValue
                 && Math.Abs(job.StartPrice.Value - latest.Price.Value) >= 1)
                 {
+                    if (runs.Count > 1)
+                    {
+                        var precedingRun = runs[1];
+
+                        // Same price as last notified run.
+                        if (precedingRun.Price == latest.Price && precedingRun.IsNotified)
+                        {
+                            await _jobRepository.MarkAllJobRunsNotifiedForJob(jobId);
+                            continue;
+                        }
+                    }
+
                     var changeType = latest.Price.Value > job.StartPrice.Value
                         ? "Unfortunately the price has increased and is now"
                         : "It's your lucky day, the price has decreased to";
@@ -84,6 +96,14 @@ namespace PriceFalcon.App.Jobs
                         <p>You asked us to let you know if the original price ({job.StartPrice}) for the item at {job.Url} changed.</p>
                         <p>{changeType} {latest.Price.Value.ToString("N2", CultureInfo.InvariantCulture)}.</p>
                         <p>You can review this price watch job here: <a href='{uri}'>Job Link</a>.</p>";
+
+                    // Double check the run is not notified
+                    var fromDb = await _jobRepository.GetJobRunsByJobId(jobId);
+
+                    if (fromDb.Count > 0 && fromDb[0].IsNotified)
+                    {
+                        continue;
+                    }
 
                     var outcome = await _emailService.Send(user.Email, $"Price Change for {job.Url}", body);
 
