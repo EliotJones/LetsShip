@@ -141,6 +141,10 @@ namespace PriceFalcon.App.Jobs
                             <p>You can review and cancel this price watch job here: <a href='{uri}'>Job Link</a>.</p>";
 
                         await _emailService.Send(user.Email, $"Price Watch failure for {job.Url}", body);
+
+                        await _jobRepository.MarkAllJobRunsNotifiedForJob(job.Id);
+
+                        continue;
                     }
                 }
 
