@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -78,10 +79,10 @@ namespace PriceFalcon.App.Jobs
                 {
                     if (runs.Count > 1)
                     {
-                        var precedingRun = runs[1];
+                        var precedingRun = runs.Skip(1).FirstOrDefault(x => x.Status == JobRunStatus.Succeeded);
 
                         // Same price as last notified run.
-                        if (precedingRun.Price == latest.Price && precedingRun.IsNotified)
+                        if (precedingRun?.Price == latest.Price && precedingRun.IsNotified)
                         {
                             await _jobRepository.MarkAllJobRunsNotifiedForJob(jobId);
                             continue;

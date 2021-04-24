@@ -61,7 +61,7 @@ namespace PriceFalcon.Web.Services
 
             var uri = new Uri(url);
 
-            if (_config.Environment != EnvironmentType.Development && uri.Host.Contains("pricefalcon", StringComparison.OrdinalIgnoreCase))
+            if (_config.Environment != EnvironmentType.Development && !uri.Host.Contains("pricefalcon", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
