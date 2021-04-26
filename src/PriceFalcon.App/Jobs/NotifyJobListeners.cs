@@ -143,9 +143,9 @@ namespace PriceFalcon.App.Jobs
                         await _emailService.Send(user.Email, $"Price Watch failure for {job.Url}", body);
 
                         await _jobRepository.MarkAllJobRunsNotifiedForJob(job.Id);
-
-                        continue;
                     }
+
+                    continue;
                 }
 
                 await _jobRepository.MarkAllJobRunsNotifiedForJob(job.Id);
