@@ -37,6 +37,10 @@ for details on configuring this project to bundle and minify static web assets. 
     font-size: 1.2em;
     padding: 25px 10px;
     color: #34495e;
+    background: rgb(52 73 94 / 5%);
+    opacity: 1;
+    border: 0;
+    line-height: 25px;
 }
 
 .input-validation-error {
@@ -204,11 +208,71 @@ nav {
     position: fixed;
     top: 25px;
     right: 32px;
-    color: #7f8c8d;
+    color: #FFF;
     text-decoration: none;
     font-size: 1.2em;
 }
 
 #about-link:hover {
     color: #34495e;
+}
+
+.wrapper {
+    position: relative;
+}
+
+#region-half {
+    height: 70vh;
+    background: rgb(231,75,128);
+    background: linear-gradient(9deg, rgba(231,75,128,1) 0%, rgba(225,30,96,1) 75%);
+    position: absolute;
+    top: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
+#form-container {
+    width: 100%;
+    background: white;
+    min-height: 70vh;
+    box-shadow: 0 1px 1px rgb(0 0 0 / 8%), 0 2px 2px rgb(0 0 0 / 12%), 0 4px 4px rgb(0 0 0 / 16%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#form-container > div {
+    width: 100%;
+}
+
+#lower-left-graph {
+    width: 30%;
+    bottom: -35vh;
+    height: 70vh;
+    left: -5%;
+    position: absolute;
+    transform: rotate(50deg);
+    background: #c20a47;
+    transition: bottom 2s ease, left 3s ease;
+}
+
+#mid-graph {
+    position: absolute;
+    background: #c20a47;
+    width: 50%;
+    height: 100vh;
+    bottom: -50vh;
+    left: 40%;
+    transform: rotate(45deg);
+    transition: bottom 3s linear, left 2s linear;
+}
+
+#upper-right-graph {
+    position: absolute;
+    background: #c20a47;
+    width: 60%;
+    right: -35%;
+    bottom: -10vh;
+    height: 50vh;
+    transform: rotate(45deg);
 }
