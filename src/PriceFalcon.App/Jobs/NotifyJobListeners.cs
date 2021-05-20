@@ -115,6 +115,7 @@ namespace PriceFalcon.App.Jobs
                 }
                 else
                 {
+                    var hasNotifiedSinceFailing = false;
                     var failCount = 0;
                     foreach (var run in runs)
                     {
@@ -127,13 +128,11 @@ namespace PriceFalcon.App.Jobs
 
                         if (run.IsNotified)
                         {
-                            // Don't re-notify, this would just be spam.
-                            failCount = 0;
-                            break;
+                            hasNotifiedSinceFailing = true;
                         }
                     }
 
-                    if (failCount >= 2)
+                    if (failCount >= 5 &&  !hasNotifiedSinceFailing)
                     {
                         var body = $@"<p>Hi there,</p>
                             <p>Unfortunately the past {failCount} attempts to monitor the price at {job.Url} failed.</p>
@@ -142,6 +141,14 @@ namespace PriceFalcon.App.Jobs
 
                         await _emailService.Send(user.Email, $"Price Watch failure for {job.Url}", body);
 
+                        await _jobRepository.MarkAllJobRunsNotifiedForJob(job.Id);
+                    }
+                    else if (failCount > 25 && hasNotifiedSinceFailing)
+                    {
+                        await _jobRepository.CancelJob(job.Id);
+                    }
+                    else if (hasNotifiedSinceFailing)
+                    {
                         await _jobRepository.MarkAllJobRunsNotifiedForJob(job.Id);
                     }
 

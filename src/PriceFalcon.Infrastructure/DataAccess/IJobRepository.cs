@@ -251,7 +251,7 @@ namespace PriceFalcon.Infrastructure.DataAccess
         {
             var random = new Random(DateTime.UtcNow.Millisecond);
 
-            var nextDue = DateTime.UtcNow.AddMinutes(random.Next(5, 25));
+            var nextDue = DateTime.UtcNow.AddHours(random.Next(1, 2)).AddMinutes(random.Next(5, 25));
 
             var entity = new JobRun
             {
